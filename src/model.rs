@@ -51,6 +51,10 @@ pub struct Settings {
     pub open_at_login: bool,
     pub evening_reminder: EveningReminder,
     pub shutdown_check: ShutdownCheck,
+    /// The main window's size, saved once it's first shown and again after
+    /// each resize. Left out of the file until then.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub window_size: Option<WindowSize>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -62,9 +66,17 @@ impl Default for Settings {
             open_at_login: true,
             evening_reminder: EveningReminder::default(),
             shutdown_check: ShutdownCheck::default(),
+            window_size: None,
             extra: BTreeMap::new(),
         }
     }
+}
+
+/// A window size in logical pixels (before display scaling).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WindowSize {
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

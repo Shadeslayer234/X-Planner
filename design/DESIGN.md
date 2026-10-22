@@ -109,7 +109,8 @@ Project colors (each has a main color, a tint for X cells, a border, and an ink 
     "windowMode": "normal | onTop | pinned",
     "openAtLogin": true,
     "eveningReminder": { "enabled": true, "time": "20:30" },
-    "shutdownCheck": { "checkTodayX": true }
+    "shutdownCheck": { "checkTodayX": true },
+    "windowSize": { "width": 420, "height": 760 }
   },
   "projects": [
     {
@@ -132,5 +133,6 @@ Project colors (each has a main color, a tint for X cells, a border, and an ink 
   }
 }
 ```
+- `windowSize` is optional: the main window's last size in logical pixels, written by the app.
 - A project counts as planned for a date when `days[date].tasks` has at least one task with its `projectId`.
 - Claude's evening check-in only adds or edits tasks under `days[<tomorrow>]`. Keep the format stable and documented, because it's the contract.

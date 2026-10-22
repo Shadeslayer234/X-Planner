@@ -152,7 +152,7 @@ pub fn run(data: &Data) -> Result<(), slint::PlatformError> {
     }
 
     ui.show()?;
-    win::window::set_app_icon(ui.window());
+    win::window::set_app_icon(&ui);
     let weak = ui.as_weak();
     win::window::repaint_after_restore(ui.window(), move || {
         if let Some(ui) = weak.upgrade() {

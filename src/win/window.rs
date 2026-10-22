@@ -17,15 +17,20 @@ pub fn hwnd(window: &slint::Window) -> Option<HWND> {
 
 /// Runs `f` with the window's HWND. Winit creates native windows lazily
 /// (after `show()`, once the event loop runs), so if there's no handle yet
-/// this tries again from the event loop.
+/// this waits for Slint to say the window exists.
 pub fn with_hwnd<C: slint::ComponentHandle + 'static>(component: &C, f: impl FnOnce(HWND) + 'static) {
     if let Some(h) = hwnd(component.window()) {
         f(h);
         return;
     }
     let weak = component.as_weak();
-    slint::Timer::single_shot(std::time::Duration::ZERO, move || {
-        if let Some(h) = weak.upgrade().and_then(|c| hwnd(c.window())) {
+    let _ = slint::spawn_local(async move {
+        let Some(c) = weak.upgrade() else { return };
+        // Resolves once the native window has been created.
+        if c.window().winit_window().await.is_err() {
+            return;
+        }
+        if let Some(h) = hwnd(c.window()) {
             f(h);
         }
     });
@@ -39,16 +44,19 @@ pub fn start_drag(window: &slint::Window) {
 }
 
 /// Sets the window and taskbar icon from icon resource 1 in the exe, and
-/// keeps the window square (call right after `show()`).
-pub fn set_app_icon(window: &slint::Window) {
+/// keeps the window square (call right after `show()`). On the first show
+/// the native window doesn't exist yet, so this waits for it.
+pub fn set_app_icon<C: slint::ComponentHandle + 'static>(component: &C) {
     use winit::platform::windows::IconExtWindows;
-    if let Some(h) = hwnd(window) {
+    let weak = component.as_weak();
+    with_hwnd(component, move |h| {
         square_corners(h);
-    }
-    window.with_winit_window(|w| {
-        if let Ok(icon) = winit::window::Icon::from_resource(1, None) {
-            w.set_window_icon(Some(icon));
-        }
+        let Some(c) = weak.upgrade() else { return };
+        c.window().with_winit_window(|w| {
+            if let Ok(icon) = winit::window::Icon::from_resource(1, None) {
+                w.set_window_icon(Some(icon));
+            }
+        });
     });
 }
 
@@ -71,13 +79,32 @@ pub fn square_corners(hwnd: HWND) {
 
 /// Winit's frameless windows keep the WS_CAPTION style and hide the caption
 /// by making the whole window client area. Windows can still paint a classic
-/// title bar over the top when the window is activated, dragged, or its
-/// title or icon changes. This subclass stops that.
+/// title bar over the top when the window is activated, dragged, its title
+/// or icon changes, or winit rewrites its style (for example when the window
+/// mode changes). This subclass removes WS_CAPTION, keeps it removed, and
+/// stops the other caption painting.
 pub fn hide_caption(hwnd: HWND) {
     use windows::Win32::UI::Shell::SetWindowSubclass;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetWindowLongW, SetWindowLongW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE,
+        SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION,
+    };
     unsafe {
         // Installing the same subclass id twice just updates it.
         let _ = SetWindowSubclass(hwnd, Some(no_caption_proc), 1, 0);
+        let style = GetWindowLongW(hwnd, GWL_STYLE);
+        if style & WS_CAPTION.0 as i32 != 0 {
+            SetWindowLongW(hwnd, GWL_STYLE, style & !(WS_CAPTION.0 as i32));
+            let _ = SetWindowPos(
+                hwnd,
+                None,
+                0,
+                0,
+                0,
+                0,
+                SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+            );
+        }
     }
 }
 
@@ -93,9 +120,19 @@ unsafe extern "system" fn no_caption_proc(
     use windows::Win32::Foundation::{LPARAM, LRESULT};
     use windows::Win32::UI::Shell::DefSubclassProc;
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongW, SetWindowLongW, GWL_STYLE, WM_NCACTIVATE, WM_NCPAINT, WM_SETICON, WM_SETTEXT, WS_VISIBLE,
+        GetWindowLongW, SetWindowLongW, GWL_STYLE, STYLESTRUCT, WM_NCACTIVATE, WM_NCPAINT, WM_SETICON, WM_SETTEXT,
+        WM_STYLECHANGING, WS_CAPTION, WS_VISIBLE,
     };
     match msg {
+        // Winit sets the whole style again whenever a window flag changes
+        // (always on top, resizable, visible...), and that brings WS_CAPTION
+        // back. Strip it from every new style. The window still drags and
+        // resizes, because winit does both by faking clicks on the frame.
+        WM_STYLECHANGING if wparam.0 as i32 == GWL_STYLE.0 => {
+            let change = &mut *(lparam.0 as *mut STYLESTRUCT);
+            change.styleNew &= !WS_CAPTION.0;
+            DefSubclassProc(hwnd, msg, wparam, lparam)
+        }
         // lparam -1 tells DefWindowProc not to repaint the non-client area.
         WM_NCACTIVATE => DefSubclassProc(hwnd, msg, wparam, LPARAM(-1)),
         WM_NCPAINT => LRESULT(0),

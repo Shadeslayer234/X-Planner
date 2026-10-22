@@ -24,7 +24,8 @@ changes, so edits show up right away.
     "windowMode": "normal | onTop | pinned",
     "openAtLogin": true,
     "eveningReminder": { "enabled": true, "time": "20:30" },
-    "shutdownCheck": { "checkTodayX": true }
+    "shutdownCheck": { "checkTodayX": true },
+    "windowSize": { "width": 420, "height": 760 }
   },
   "projects": [
     {
@@ -49,3 +50,6 @@ changes, so edits show up right away.
 ```
 A project counts as planned for a date when `days[date].tasks` has at least one
 task with its `projectId`.
+
+`windowSize` is the main window's last size in logical pixels. The app writes
+it; it's missing until the window has been shown once.

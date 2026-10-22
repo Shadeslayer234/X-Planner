@@ -14,7 +14,6 @@ export { AppState, Page, PlanState, PlanGroup, LeftoverRow, TomorrowRow, HabitSt
 export { Pal, ProjectRow, TaskRow, CardView } from "theme.slint";
 
 export component AppWindow inherits Window {
-    in property <length> win-height: 980px;
     in property <bool> on-top: false;
     // Rust flips this when the window is restored from minimized (see
     // repaint_after_restore in src/win/window.rs). The nearly invisible
@@ -25,8 +24,17 @@ export component AppWindow inherits Window {
     always-on-top: on-top;
     default-font-family: Theme.sans;
     background: Theme.bg;
-    width: AppState.page == Page.main ? 400px : 440px;
-    height: win-height;
+    // Resizable: drag any edge. A min size without a max lets the window
+    // resize; Rust sets the starting size (the saved one, or fit_to_screen).
+    preferred-width: 420px;
+    preferred-height: 760px;
+    min-width: 360px;
+    min-height: 480px;
+    resize-border-width: 6px;
+    // Tells Rust the size changed, so it can save it.
+    callback resized(length, length);
+    changed width => { root.resized(self.width, self.height); }
+    changed height => { root.resized(self.width, self.height); }
 
     Rectangle { background: root.repaint ? #00000001 : transparent; }
 

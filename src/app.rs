@@ -16,6 +16,11 @@ use crate::reminder::{Reminder, Wake};
 use crate::model::{Kind, WindowMode};
 use crate::{view, AppState, AppWindow, DesktopWidget, Page, PlanState, SettingsState};
 
+/// The main window's minimum size, matching `min-width` and `min-height` in
+/// ui/app.slint.
+const MIN_WIDTH: f32 = 360.0;
+const MIN_HEIGHT: f32 = 480.0;
+
 pub fn today() -> Date {
     chrono::Local::now().date_naive()
 }
@@ -38,6 +43,10 @@ pub struct App {
     reminder: Reminder,
     /// The compact desktop widget, while in "Pinned to desktop" mode.
     widget: RefCell<Option<DesktopWidget>>,
+    /// Whether the main window has been given its starting size yet.
+    sized: std::cell::Cell<bool>,
+    /// Saves the window size once resizing has paused (see `on_resized`).
+    size_saver: slint::Timer,
 }
 
 thread_local! {
@@ -62,6 +71,8 @@ impl App {
             tray: RefCell::new(None),
             reminder: Reminder::default(),
             widget: RefCell::new(None),
+            sized: std::cell::Cell::new(false),
+            size_saver: slint::Timer::default(),
         });
         APP.with(|a| *a.borrow_mut() = Rc::downgrade(&app));
         app.bind_callbacks(&app.main.global::<AppState>());
@@ -71,6 +82,12 @@ impl App {
         win::window::repaint_after_restore(app.main.window(), move || {
             if let Some(main) = weak.upgrade() {
                 main.set_repaint(!main.get_repaint());
+            }
+        });
+        let weak = Rc::downgrade(&app);
+        app.main.on_resized(move |width, height| {
+            if let Some(app) = weak.upgrade() {
+                app.on_resized(width, height);
             }
         });
         app.refresh();
@@ -147,25 +164,60 @@ impl App {
             eprintln!("Couldn't show the window: {e}");
             return;
         }
-        win::window::set_app_icon(self.main.window());
-        self.fit_to_screen();
-        win::window::with_hwnd(&self.main, win::window::bring_to_front);
+        win::window::set_app_icon(&self.main);
+        win::window::with_hwnd(&self.main, |hwnd| {
+            // Only the first time: after that the window keeps the size the
+            // user dragged it to.
+            with_app(|app| {
+                if !app.sized.replace(true) {
+                    app.set_starting_size();
+                }
+            });
+            win::window::bring_to_front(hwnd);
+        });
     }
 
-    /// Keeps the window shorter than the screen it's on.
-    fn fit_to_screen(&self) {
+    /// Gives the window the size saved last time, or a starting height that
+    /// fits the screen it's on. Either way it's kept shorter than the screen.
+    fn set_starting_size(&self) {
         use slint::winit_030::WinitWindowAccessor;
-        let max = self
-            .main
-            .window()
+        let window = self.main.window();
+        let max = window
             .with_winit_window(|w| {
                 let m = w.current_monitor()?;
-                Some(m.size().height as f32 / m.scale_factor() as f32 - 80.0)
+                let scale = m.scale_factor() as f32;
+                Some((m.size().width as f32 / scale, m.size().height as f32 / scale - 80.0))
             })
             .flatten();
-        if let Some(max) = max {
-            self.main.set_win_height(max.clamp(560.0, 980.0));
+        let Some((max_width, max_height)) = max else { return };
+        let size = match self.state.borrow().data.settings.window_size {
+            Some(saved) => slint::LogicalSize::new(
+                (saved.width as f32).min(max_width).max(MIN_WIDTH),
+                (saved.height as f32).min(max_height).max(MIN_HEIGHT),
+            ),
+            None => {
+                let width = window.size().to_logical(window.scale_factor()).width;
+                slint::LogicalSize::new(width, max_height.clamp(560.0, 980.0))
+            }
+        };
+        window.set_size(size);
+    }
+
+    /// Called whenever the main window's size changes. Saves the size a
+    /// second after the last change, so dragging an edge writes the file
+    /// once instead of on every step.
+    fn on_resized(&self, width: f32, height: f32) {
+        // Before the starting size is set, the size is just the default.
+        // A minimized window reports a tiny size; that isn't one to keep.
+        if !self.sized.get() || width < MIN_WIDTH || height < MIN_HEIGHT {
+            return;
         }
+        self.size_saver.start(slint::TimerMode::SingleShot, std::time::Duration::from_secs(1), move || {
+            with_app(|app| {
+                let size = crate::model::WindowSize { width: width.round() as u32, height: height.round() as u32 };
+                app.change(|s| s.data.settings.window_size = Some(size));
+            })
+        });
     }
 
     fn bind_callbacks(self: &Rc<Self>, ui: &AppState) {
