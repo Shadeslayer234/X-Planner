@@ -1,0 +1,52 @@
+// Shared state and callbacks for the main window and the desktop widget.
+// Rust fills the properties (src/ui/view.rs) and handles the callbacks
+// (src/app.rs). Each window gets its own copy of this global.
+
+import { Pal, ProjectRow, TaskRow, CardView } from "theme.slint";
+
+export enum Page { main, new-project, evening, settings }
+
+export global AppState {
+    in-out property <Page> page: Page.main;
+
+    // Title bar.
+    in property <string> weekday;
+    in property <string> date-label;
+
+    // Project switcher and X card.
+    in property <[ProjectRow]> projects;
+    in property <CardView> card;
+    in property <[int]> cells;
+    // "2/4 X": projects marked today out of all.
+    in property <string> x-today-label;
+
+    // Today's tasks for the selected project.
+    in property <[TaskRow]> tasks;
+    in property <string> done-label;
+
+    // Footer.
+    in property <bool> has-plannable;
+    in property <bool> tomorrow-planned;
+    in property <string> plan-title;
+    in property <string> plan-detail;
+
+    in property <bool> pinned-mode;
+
+    // The four project colors, in ColorName order.
+    in property <[Pal]> palettes;
+    // name, is-habit, minimum, color index, starts tomorrow
+    callback create-project(string, bool, string, int, bool);
+
+    callback select-project(string);
+    callback toggle-mark();
+    callback start-new-card();
+    callback toggle-task(string);
+    callback add-task(string);
+    callback new-project();
+    callback plan-now();
+    callback open-settings();
+    callback hide-window();
+    callback toggle-pin();
+    callback start-drag();
+    callback open-full-view();
+}

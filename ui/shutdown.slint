@@ -1,0 +1,212 @@
+// The shutdown check, shown by `xplanner.exe --shutdown-check`.
+// See design/screens/ShutdownNotPlanned.dc.html and ShutdownReady.dc.html.
+
+import { Theme, Icons } from "theme.slint";
+import { Icon, Button } from "widgets.slint";
+
+// One row of the checklist.
+component CheckRow inherits Rectangle {
+    in property <string> label;
+    in property <string> detail;
+    in property <bool> ok;
+    in property <bool> divider;
+    height: 44px;
+    HorizontalLayout {
+        spacing: 12px;
+        Rectangle {
+            width: 20px;
+            Icon {
+                source: ok ? Icons.check : Icons.alert;
+                width: 16px;
+                height: 16px;
+                tint: ok ? #F0B445 : Theme.text;
+            }
+        }
+        Text {
+            text: label;
+            font-size: 14px;
+            font-weight: ok ? 400 : 600;
+            color: Theme.text;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        Text {
+            text: detail;
+            font-family: Theme.mono;
+            font-size: 13px;
+            color: Theme.text-muted;
+            vertical-alignment: center;
+        }
+    }
+    if divider: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.divider-2;
+    }
+}
+
+export component ShutdownWindow inherits Window {
+    in property <bool> all-set;
+    in property <string> heading;
+    in property <string> message;
+    in property <int> countdown: 5;
+    in property <bool> show-x;
+    in property <bool> x-ok;
+    in property <string> x-detail;
+    in property <bool> show-plan;
+    in property <bool> plan-ok;
+    in property <string> plan-detail;
+    // "Plan now" or "Open X Planner".
+    in property <string> fix-label;
+    // Rust flips this when the window is restored from minimized (see
+    // repaint_after_restore in src/win/window.rs). The nearly invisible
+    // fill below covers the whole window, so flipping it redraws everything.
+    in property <bool> repaint;
+
+    callback shut-down;
+    callback cancel;
+    callback fix;
+
+    title: "X Planner · Shut down";
+    no-frame: true;
+    always-on-top: true;
+    default-font-family: Theme.sans;
+    background: Theme.bg;
+    width: 440px;
+    height: 360px;
+    forward-focus: keys;
+
+    keys := FocusScope {
+        key-pressed(e) => {
+            if e.text == Key.Escape {
+                root.cancel();
+                return accept;
+            }
+            reject
+        }
+    }
+
+    Rectangle { background: root.repaint ? #00000001 : transparent; }
+
+    Rectangle {
+        border-width: 1px;
+        border-color: Theme.border;
+        VerticalLayout {
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-top: 26px;
+            padding-bottom: 22px;
+            spacing: 20px;
+
+            HorizontalLayout {
+                spacing: 14px;
+                VerticalLayout {
+                    alignment: start;
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 10px;
+                        background: #2A2418;
+                        Icon {
+                            source: all-set ? Icons.check : Icons.power;
+                            width: 20px;
+                            height: 20px;
+                            tint: #F0B445;
+                        }
+                    }
+                }
+                VerticalLayout {
+                    spacing: 4px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: heading;
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: Theme.text;
+                    }
+                    if !all-set: Text {
+                        text: message;
+                        font-size: 14px;
+                        color: Theme.text-muted;
+                        wrap: word-wrap;
+                    }
+                    if all-set: HorizontalLayout {
+                        alignment: start;
+                        Text { text: "Shutting down in "; font-size: 14px; color: Theme.text-muted; }
+                        Text { text: countdown; font-size: 14px; font-family: Theme.mono; color: Theme.text; }
+                        Text { text: countdown == 1 ? " second." : " seconds."; font-size: 14px; color: Theme.text-muted; }
+                    }
+                }
+            }
+
+            if show-x || show-plan: Rectangle {
+                border-radius: Theme.card-radius;
+                background: Theme.surface;
+                border-width: 1px;
+                border-color: Theme.border;
+                height: rows.preferred-height;
+                rows := VerticalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    if show-x: CheckRow {
+                        label: "Today's X marked";
+                        detail: x-detail;
+                        ok: x-ok;
+                        divider: show-plan;
+                    }
+                    if show-plan: CheckRow {
+                        label: "Projects planned";
+                        detail: plan-detail;
+                        ok: plan-ok;
+                    }
+                }
+            }
+
+            Rectangle { vertical-stretch: 1; }
+
+            if !all-set: HorizontalLayout {
+                spacing: 10px;
+                Button {
+                    text: "Shut down anyway";
+                    weight: 400;
+                    padding-x: 14px;
+                    fill: transparent;
+                    fill-hover: Theme.surface-2;
+                    ink: Theme.text-muted;
+                    clicked => { root.shut-down(); }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Button {
+                    text: "Cancel";
+                    weight: 500;
+                    clicked => { root.cancel(); }
+                }
+                Button {
+                    text: fix-label;
+                    fill: #F0B445;
+                    ink: #1A1405;
+                    padding-x: 18px;
+                    clicked => { root.fix(); }
+                }
+            }
+            if all-set: HorizontalLayout {
+                spacing: 10px;
+                alignment: end;
+                Button {
+                    text: "Cancel";
+                    weight: 500;
+                    clicked => { root.cancel(); }
+                }
+                Button {
+                    text: "Shut down now";
+                    fill: #F0B445;
+                    ink: #1A1405;
+                    padding-x: 18px;
+                    clicked => { root.shut-down(); }
+                }
+            }
+        }
+    }
+}

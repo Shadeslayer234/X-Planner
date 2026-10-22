@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>X Planner — Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F11}
+a{color:#F0B445}a:hover{color:#F6C76B}
+input::placeholder{color:#80868E}
+</style>
+</helmet>
+<div style="width: 440px; height: 1060px; box-sizing: border-box; background: #141619; color: #E9EAEC; font-family: 'IBM Plex Sans', system-ui, sans-serif; display: flex; flex-direction: column; border: 1px solid #2A2E34; border-radius: 12px; overflow: hidden">
+
+  <div style="display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-bottom: 1px solid #22262B">
+    <a href="Main.dc.html" aria-label="Back" title="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #A0A6AD; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18 9 12l6-6"></path></svg>
+    </a>
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #A0A6AD">SETTINGS</div>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; padding: 22px 24px 24px">
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #A0A6AD">WINDOW</div>
+      <sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+        <sc-if value="{{m.checked}}" hint-placeholder-val="{{false}}">
+          <label style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: #1F1C15; border: 1px solid #6B5524; border-radius: 10px; cursor: pointer">
+            <input type="radio" name="window-mode" checked="{{m.checked}}" onChange="{{m.pick}}" style="width: 18px; height: 18px; margin: 2px 0 0; flex: none; accent-color: #F0B445">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 14px; font-weight: 600">{{m.title}}</span>
+              <span style="font-size: 13px; line-height: 1.4; color: #A0A6AD">{{m.desc}}</span>
+            </span>
+          </label>
+        </sc-if>
+        <sc-if value="{{m.unchecked}}" hint-placeholder-val="{{true}}">
+          <label style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: #1C1F23; border: 1px solid #2A2E34; border-radius: 10px; cursor: pointer">
+            <input type="radio" name="window-mode" checked="{{m.checked}}" onChange="{{m.pick}}" style="width: 18px; height: 18px; margin: 2px 0 0; flex: none; accent-color: #F0B445">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 14px; font-weight: 600">{{m.title}}</span>
+              <span style="font-size: 13px; line-height: 1.4; color: #A0A6AD">{{m.desc}}</span>
+            </span>
+          </label>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #A0A6AD; margin-bottom: 4px">DAILY RHYTHM</div>
+      <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-bottom: 1px solid #1F2227; cursor: pointer">
+        <span style="display: flex; flex-direction: column; gap: 1px">
+          <span style="font-size: 14px">Open when I sign in to Windows</span>
+          <span style="font-size: 12px; color: #A0A6AD">Shows today's tasks first thing</span>
+        </span>
+        <input type="checkbox" checked="{{startup}}" onChange="{{toggleStartup}}" style="width: 18px; height: 18px; margin: 0; flex: none; accent-color: #F0B445">
+      </label>
+      <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-bottom: 1px solid #1F2227; cursor: pointer">
+        <span style="display: flex; flex-direction: column; gap: 1px">
+          <span style="font-size: 14px">Evening planning reminder</span>
+          <span style="font-size: 12px; color: #A0A6AD">Asks you to plan tomorrow</span>
+        </span>
+        <input type="checkbox" checked="{{reminder}}" onChange="{{toggleReminder}}" style="width: 18px; height: 18px; margin: 0; flex: none; accent-color: #F0B445">
+      </label>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; border-bottom: 1px solid #1F2227">
+        <label for="reminder-time" style="font-size: 14px">Reminder time</label>
+        <input id="reminder-time" type="time" value="20:30" style="height: 40px; padding: 0 10px; background: #1C1F23; border: 1px solid #2A2E34; border-radius: 8px; color: #E9EAEC; color-scheme: dark; font-family: 'IBM Plex Mono', monospace; font-size: 14px">
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #A0A6AD; margin-bottom: 4px">SHUTDOWN CHECK</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; border-bottom: 1px solid #1F2227">
+        <span style="display: flex; flex-direction: column; gap: 1px">
+          <span style="font-size: 14px">Shutdown button</span>
+          <span style="font-size: 12px; color: #A0A6AD">Checks your plan before shutting down</span>
+        </span>
+        <button style="height: 44px; padding: 0 14px; flex: none; background: #2A2E34; border: 0; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer">Pin to taskbar</button>
+      </div>
+      <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-bottom: 1px solid #1F2227; cursor: pointer">
+        <span style="display: flex; flex-direction: column; gap: 1px">
+          <span style="font-size: 14px">Also check today's X</span>
+          <span style="font-size: 12px; color: #A0A6AD">Reminds you if the habit isn't marked</span>
+        </span>
+        <input type="checkbox" checked="{{checkX}}" onChange="{{toggleCheckX}}" style="width: 18px; height: 18px; margin: 0; flex: none; accent-color: #F0B445">
+      </label>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #A0A6AD">HABIT CARD</div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="habit-name" style="font-size: 13px; color: #A0A6AD">Habit</label>
+        <input id="habit-name" type="text" value="Work on Poltergeist" style="height: 44px; box-sizing: border-box; padding: 0 12px; background: #1C1F23; border: 1px solid #2A2E34; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="habit-min" style="font-size: 13px; color: #A0A6AD">Minimum to earn an X</label>
+        <input id="habit-min" type="text" value="15 minutes" style="height: 44px; box-sizing: border-box; padding: 0 12px; background: #1C1F23; border: 1px solid #2A2E34; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px">
+      </div>
+      <button style="align-self: flex-start; height: 44px; padding: 0 14px; background: transparent; border: 1px solid #3A3F46; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer">Start a new 49-day card</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #A0A6AD">DATA</div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; background: #1C1F23; border: 1px solid #2A2E34; border-radius: 10px">
+        <span style="flex: 1; min-width: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #C9CDD2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">%APPDATA%\XPlanner\data.json</span>
+        <button style="height: 44px; padding: 0 12px; flex: none; background: #2A2E34; border: 0; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer">Open folder</button>
+      </div>
+      <div style="font-size: 12px; line-height: 1.45; color: #A0A6AD">Plain JSON, so you or Claude can read and update it during the evening check-in.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":1060}}'>
+class Component extends DCLogic {
+  state = { mode: 'pinned', startup: true, reminder: true, checkX: true };
+
+  renderVals() {
+    const s = this.state;
+    const defs = [
+      { id: 'normal', title: 'Normal window', desc: 'Behaves like any other app window.' },
+      { id: 'top', title: 'Always on top', desc: 'Floats above your other windows.' },
+      { id: 'pinned', title: 'Pinned to desktop', desc: 'Sits above the wallpaper, stays visible after Win+D, never covers your work. Uses a compact layout.' }
+    ];
+    const modes = defs.map((d) => ({
+      title: d.title,
+      desc: d.desc,
+      checked: s.mode === d.id,
+      unchecked: s.mode !== d.id,
+      pick: () => this.setState({ mode: d.id })
+    }));
+    return {
+      modes: modes,
+      startup: s.startup,
+      reminder: s.reminder,
+      checkX: s.checkX,
+      toggleStartup: () => this.setState({ startup: !this.state.startup }),
+      toggleReminder: () => this.setState({ reminder: !this.state.reminder }),
+      toggleCheckX: () => this.setState({ checkX: !this.state.checkX })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+// Small reusable pieces: icons, buttons, checkboxes, inputs and the X grid.
+
+import { Theme, Icons, Pal } from "theme.slint";
+
+// A tinted line icon.
+export component Icon inherits Image {
+    in property <color> tint: Theme.text-muted;
+    width: 18px;
+    height: 18px;
+    colorize: tint;
+}
+
+// 44×44 icon-only button, used in title bars.
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 18px;
+    in property <color> tint: Theme.text-muted;
+    in property <bool> active: false;
+    in property <color> fill: transparent;
+    callback clicked;
+    width: Theme.target;
+    height: Theme.target;
+    border-radius: Theme.button-radius;
+    background: ta.has-hover || active ? Theme.surface-2 : fill;
+    Icon {
+        source: icon;
+        width: icon-size;
+        height: icon-size;
+        tint: active ? Theme.text : tint;
+    }
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// A filled or outlined button with a label and an optional icon.
+export component Button inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <length> icon-size: 16px;
+    in property <color> fill: Theme.surface-3;
+    in property <color> fill-hover: fill.brighter(12%);
+    in property <color> ink: Theme.text;
+    in property <color> icon-color: ink;
+    in property <color> outline: transparent;
+    in property <int> weight: 600;
+    in property <length> font-size: 14px;
+    in property <length> padding-x: 16px;
+    in property <bool> enabled: true;
+    callback clicked;
+    height: Theme.target;
+    min-width: lay.min-width;
+    border-radius: Theme.button-radius;
+    background: !enabled ? fill.with-alpha(fill.to-hsv().alpha * 0.4) : ta.has-hover ? fill-hover : fill;
+    border-width: outline == transparent ? 0 : 1px;
+    border-color: outline;
+    opacity: enabled ? 1 : 0.6;
+    lay := HorizontalLayout {
+        padding-left: padding-x;
+        padding-right: padding-x;
+        spacing: 8px;
+        alignment: center;
+        if has-icon: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: icon;
+                width: icon-size;
+                height: icon-size;
+                tint: icon-color;
+            }
+        }
+        Text {
+            text: root.text;
+            color: ink;
+            font-size: root.font-size;
+            font-weight: weight;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// A text link, like "Open full view".
+export component Link inherits Text {
+    callback clicked;
+    color: ta.has-hover ? #F6C76B : #F0B445;
+    font-size: 12px;
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Uppercase section label: 12 px, semibold, letter-spacing 0.08em.
+export component SectionLabel inherits Text {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.96px;
+    color: Theme.text-muted;
+}
+
+export component Dot inherits Rectangle {
+    in property <color> tint;
+    in property <length> size: 10px;
+    in property <bool> hollow: false;
+    width: size;
+    height: size;
+    border-radius: size / 2;
+    background: hollow ? transparent : tint;
+    border-width: hollow ? 1.5px : 0;
+    border-color: tint;
+}
+
+// A square checkbox. `tint` is the fill when checked.
+export component Checkbox inherits Rectangle {
+    in property <bool> checked;
+    in property <color> tint: #F0B445;
+    in property <color> ink: #141619;
+    in property <length> size: 18px;
+    width: size;
+    height: size;
+    border-radius: 4px;
+    background: checked ? tint : Theme.surface;
+    border-width: checked ? 0 : 1.5px;
+    border-color: Theme.text-muted;
+    if checked: Icon {
+        source: Icons.check;
+        width: size - 4px;
+        height: size - 4px;
+        tint: ink;
+    }
+}
+
+// A round radio button.
+export component Radio inherits Rectangle {
+    in property <bool> checked;
+    in property <color> tint: #F0B445;
+    in property <length> size: 18px;
+    width: size;
+    height: size;
+    border-radius: size / 2;
+    background: Theme.surface;
+    border-width: checked ? 0 : 1.5px;
+    border-color: Theme.text-muted;
+    if checked: Rectangle {
+        width: size;
+        height: size;
+        border-radius: size / 2;
+        background: tint;
+        Rectangle {
+            width: size * 0.4;
+            height: size * 0.4;
+            border-radius: size * 0.2;
+            background: Theme.bg;
+        }
+    }
+}
+
+// A single-line text input with a placeholder.
+export component TextField inherits Rectangle {
+    in-out property <string> text <=> input.text;
+    in property <string> placeholder;
+    in property <length> font-size: 14px;
+    in property <string> font-family: Theme.sans;
+    in property <color> fill: Theme.surface;
+    out property <bool> has-focus: input.has-focus;
+    callback accepted(string);
+    callback edited(string);
+    height: Theme.target;
+    border-radius: Theme.button-radius;
+    background: fill;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.border-strong.brighter(20%) : Theme.border;
+    public function focus-input() { input.focus(); }
+    public function clear() { input.text = ""; }
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => { input.focus(); }
+    }
+    if input.text == "": Text {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        text: placeholder;
+        color: Theme.text-done;
+        font-size: root.font-size;
+        font-family: root.font-family;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    input := TextInput {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        color: Theme.text;
+        font-size: root.font-size;
+        font-family: root.font-family;
+        vertical-alignment: center;
+        single-line: true;
+        selection-background-color: #F0B44566;
+        accepted => { root.accepted(self.text); }
+        edited => { root.edited(self.text); }
+    }
+}
+
+// Text with a line through it when `struck` is set.
+export component StrikeText inherits Text {
+    in property <bool> struck;
+    if struck: Rectangle {
+        x: 0;
+        y: parent.height / 2;
+        width: min(parent.preferred-width, parent.width);
+        height: 1px;
+        background: parent.color;
+    }
+}
+
+// A dashed rounded border, drawn as a solid border with gaps punched into
+// the straight edges (Slint has no dashed borders).
+component DashedBox inherits Rectangle {
+    in property <color> tint;
+    in property <color> fill;
+    in property <length> thickness: 1.5px;
+    property <length> dash: 4px;
+    property <length> gap: 3px;
+    property <length> inset: self.border-radius + 1px;
+    property <int> count: max(0, floor((self.width - 2 * inset - dash) / (dash + gap)));
+    property <length> start: (self.width - (count * (dash + gap) + dash)) / 2 + dash;
+    background: fill;
+    border-width: thickness;
+    border-color: tint;
+    for i in count: Rectangle {
+        x: start + i * (dash + gap);
+        y: 0;
+        width: gap;
+        height: thickness;
+        background: fill;
+    }
+    for i in count: Rectangle {
+        x: start + i * (dash + gap);
+        y: parent.height - thickness;
+        width: gap;
+        height: thickness;
+        background: fill;
+    }
+    for i in count: Rectangle {
+        x: 0;
+        y: start + i * (dash + gap);
+        width: thickness;
+        height: gap;
+        background: fill;
+    }
+    for i in count: Rectangle {
+        x: parent.width - thickness;
+        y: start + i * (dash + gap);
+        width: thickness;
+        height: gap;
+        background: fill;
+    }
+    @children
+}
+
+// One cell of the full-size X card.
+component Cell inherits Rectangle {
+    in property <int> kind;
+    in property <int> day;
+    in property <Pal> pal;
+    border-radius: 6px;
+    if kind == 0: Rectangle {
+        border-radius: 6px;
+        background: pal.tint;
+        border-width: 1px;
+        border-color: pal.border;
+        Icon {
+            source: Icons.xmark;
+            width: parent.width * 0.52;
+            height: parent.width * 0.52;
+            tint: pal.main;
+        }
+    }
+    if kind == 1: Rectangle {
+        border-radius: 6px;
+        background: Theme.surface;
+        border-width: 1px;
+        border-color: Theme.cell-miss-border;
+        Rectangle {
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: Theme.miss-dot;
+        }
+    }
+    if kind == 2: DashedBox {
+        border-radius: 6px;
+        tint: pal.main;
+        fill: Theme.surface;
+        Text {
+            text: day;
+            color: pal.main;
+            font-family: Theme.mono;
+            font-size: 11px;
+        }
+    }
+    if kind == 3: Rectangle {
+        border-radius: 6px;
+        background: Theme.cell-future;
+        border-width: 1px;
+        border-color: Theme.cell-future-border;
+    }
+}
+
+// One cell of the small grid (desktop widget and the new-project preview).
+component SmallCell inherits Rectangle {
+    in property <int> kind;
+    in property <Pal> pal;
+    border-radius: 3px;
+    background: kind == 0 ? pal.main : kind == 1 ? #3A3F46 : kind == 2 ? transparent : #22262B;
+    border-width: kind == 2 ? 1.5px : 0;
+    border-color: pal.main;
+}
+
+// The 7×7 grid. `small` switches to the compact cell style.
+export component XGrid inherits Rectangle {
+    in property <[int]> cells;
+    in property <Pal> pal;
+    in property <length> gap: 6px;
+    in property <bool> small: false;
+    property <length> cell: (self.width - 6 * gap) / 7;
+    height: self.width;
+    for c[i] in cells: Rectangle {
+        x: mod(i, 7) * (cell + gap);
+        y: floor(i / 7) * (cell + gap);
+        width: cell;
+        height: cell;
+        if !small: Cell {
+            width: parent.width;
+            height: parent.height;
+            kind: c;
+            day: i + 1;
+            pal: pal;
+        }
+        if small: SmallCell {
+            width: parent.width;
+            height: parent.height;
+            kind: c;
+            pal: pal;
+        }
+    }
+}

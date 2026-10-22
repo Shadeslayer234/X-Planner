@@ -1,0 +1,42 @@
+// The main window. It's frameless; the pages draw their own title bars.
+
+import { Theme } from "theme.slint";
+import { AppState, Page } from "state.slint";
+import { MainPage } from "main_page.slint";
+import { NewProjectPage } from "new_project.slint";
+import { SettingsPage, SettingsState } from "settings.slint";
+import { ShutdownWindow } from "shutdown.slint";
+import { DesktopWidget } from "desktop.slint";
+import { EveningPage, PlanState, PlanGroup, LeftoverRow, TomorrowRow, HabitStatus } from "evening.slint";
+
+export { SettingsState, ShutdownWindow, DesktopWidget }
+export { AppState, Page, PlanState, PlanGroup, LeftoverRow, TomorrowRow, HabitStatus }
+export { Pal, ProjectRow, TaskRow, CardView } from "theme.slint";
+
+export component AppWindow inherits Window {
+    in property <length> win-height: 980px;
+    in property <bool> on-top: false;
+    // Rust flips this when the window is restored from minimized (see
+    // repaint_after_restore in src/win/window.rs). The nearly invisible
+    // fill below covers the whole window, so flipping it redraws everything.
+    in property <bool> repaint;
+    title: "X Planner";
+    no-frame: true;
+    always-on-top: on-top;
+    default-font-family: Theme.sans;
+    background: Theme.bg;
+    width: AppState.page == Page.main ? 400px : 440px;
+    height: win-height;
+
+    Rectangle { background: root.repaint ? #00000001 : transparent; }
+
+    Rectangle {
+        border-width: 1px;
+        border-color: Theme.border;
+        clip: true;
+        if AppState.page == Page.main: MainPage { }
+        if AppState.page == Page.new-project: NewProjectPage { }
+        if AppState.page == Page.evening: EveningPage { }
+        if AppState.page == Page.settings: SettingsPage { }
+    }
+}

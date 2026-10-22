@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>X Planner — Shutdown check, not planned</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F11}
+a{color:#F0B445}a:hover{color:#F6C76B}
+</style>
+</helmet>
+<div style="width: 440px; height: 360px; box-sizing: border-box; background: #141619; color: #E9EAEC; font-family: 'IBM Plex Sans', system-ui, sans-serif; display: flex; flex-direction: column; gap: 20px; padding: 26px 24px 22px; border: 1px solid #2A2E34; border-radius: 12px">
+
+  <div style="display: flex; gap: 14px; align-items: flex-start">
+    <div style="width: 40px; height: 40px; flex: none; border-radius: 10px; background: #2A2418; color: #F0B445; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-size: 18px; font-weight: 600">Before you shut down</div>
+      <div style="font-size: 14px; line-height: 1.45; color: #A0A6AD">Poltergeist and Unity pathway have no tasks for Friday. Habits don't need planning.</div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; padding: 4px 14px; background: #1C1F23; border: 1px solid #2A2E34; border-radius: 10px">
+    <div style="display: flex; align-items: center; gap: 12px; min-height: 44px; border-bottom: 1px solid #262A2F">
+      <div style="width: 20px; display: flex; justify-content: center; color: #F0B445">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </div>
+      <span style="flex: 1; font-size: 14px">Today's X marked</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; min-height: 44px">
+      <div style="width: 20px; display: flex; justify-content: center; color: #E9EAEC">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+      </div>
+      <span style="flex: 1; font-size: 14px; font-weight: 600">Projects planned</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #A0A6AD">1 of 3</span>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; margin-top: auto">
+    <button style="height: 44px; padding: 0 14px; background: transparent; border: 0; border-radius: 8px; color: #A0A6AD; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; cursor: pointer">Shut down anyway</button>
+    <div style="flex: 1"></div>
+    <button style="height: 44px; padding: 0 16px; background: #2A2E34; border: 0; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer">Cancel</button>
+    <a href="EveningPlan.dc.html" style="height: 44px; padding: 0 18px; display: flex; align-items: center; border-radius: 8px; background: #F0B445; color: #1A1405; font-size: 14px; font-weight: 600; text-decoration: none">Plan now</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

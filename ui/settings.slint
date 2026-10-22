@@ -1,0 +1,342 @@
+// Settings. See design/screens/Settings.dc.html.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons, Pal } from "theme.slint";
+import { AppState, Page } from "state.slint";
+import { Icon, Button, SectionLabel, Checkbox, Radio, TextField } from "widgets.slint";
+import { PageHeader, FieldLabel, Hint } from "new_project.slint";
+
+export global SettingsState {
+    // 0 = normal, 1 = always on top, 2 = pinned to desktop.
+    in property <int> window-mode;
+    in property <bool> open-at-login;
+    in property <bool> reminder-enabled;
+    in property <string> reminder-time;
+    in property <bool> check-today-x;
+    in property <string> data-path;
+    // Shown under the shortcut button after it's created.
+    in-out property <string> shortcut-notice;
+
+    callback set-window-mode(int);
+    callback set-open-at-login(bool);
+    callback set-reminder-enabled(bool);
+    // Returns the time as saved ("20:30"), or the old one if invalid.
+    callback set-reminder-time(string) -> string;
+    callback set-check-today-x(bool);
+    callback create-shortcut();
+    callback open-data-folder();
+
+    // Editing the selected project.
+    callback rename-project(string);
+    callback set-minimum(string);
+    callback set-habit(bool);
+    callback archive-project();
+}
+
+// The amber accent the settings mockup uses for every control.
+component ModeCard inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <bool> checked;
+    callback picked;
+    border-radius: Theme.card-radius;
+    background: checked ? #1F1C15 : ta.has-hover ? #20242A : Theme.surface;
+    border-width: 1px;
+    border-color: checked ? #6B5524 : Theme.border;
+    height: lay.preferred-height;
+    lay := HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: start;
+            padding-top: 2px;
+            Radio { checked: root.checked; }
+        }
+        VerticalLayout {
+            spacing: 2px;
+            horizontal-stretch: 1;
+            Text { text: title; font-size: 14px; font-weight: 600; color: Theme.text; }
+            Text { text: description; font-size: 13px; color: Theme.text-muted; wrap: word-wrap; }
+        }
+    }
+    ta := TouchArea {
+        clicked => { root.picked(); }
+    }
+}
+
+// A row with a title, a description and a checkbox on the right.
+component ToggleRow inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <bool> checked;
+    callback toggled(bool);
+    height: max(52px, lay.preferred-height);
+    lay := HorizontalLayout {
+        spacing: 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            horizontal-stretch: 1;
+            Text { text: title; font-size: 14px; color: Theme.text; }
+            Text { text: description; font-size: 12px; color: Theme.text-muted; wrap: word-wrap; }
+        }
+        VerticalLayout {
+            alignment: center;
+            Checkbox { checked: root.checked; }
+        }
+    }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.divider;
+    }
+    TouchArea {
+        clicked => { root.toggled(!root.checked); }
+    }
+}
+
+export component SettingsPage inherits Rectangle {
+    VerticalLayout {
+        PageHeader {
+            title: "SETTINGS";
+            back: true;
+            close => { AppState.page = Page.main; }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                alignment: start;
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-top: 22px;
+                padding-bottom: 24px;
+                spacing: 28px;
+
+                VerticalLayout {
+                    spacing: 8px;
+                    SectionLabel { text: "WINDOW"; }
+                    ModeCard {
+                        title: "Normal window";
+                        description: "Behaves like any other app window.";
+                        checked: SettingsState.window-mode == 0;
+                        picked => { SettingsState.set-window-mode(0); }
+                    }
+                    ModeCard {
+                        title: "Always on top";
+                        description: "Floats above your other windows.";
+                        checked: SettingsState.window-mode == 1;
+                        picked => { SettingsState.set-window-mode(1); }
+                    }
+                    ModeCard {
+                        title: "Pinned to desktop";
+                        description: "Sits above the wallpaper, stays visible after Win+D, never covers your work. Uses a compact layout.";
+                        checked: SettingsState.window-mode == 2;
+                        picked => { SettingsState.set-window-mode(2); }
+                    }
+                }
+
+                VerticalLayout {
+                    SectionLabel { text: "DAILY RHYTHM"; height: self.preferred-height + 4px; }
+                    ToggleRow {
+                        title: "Open when I sign in to Windows";
+                        description: "Shows today's tasks first thing";
+                        checked: SettingsState.open-at-login;
+                        toggled(on) => { SettingsState.set-open-at-login(on); }
+                    }
+                    ToggleRow {
+                        title: "Evening planning reminder";
+                        description: "Asks you to plan tomorrow";
+                        checked: SettingsState.reminder-enabled;
+                        toggled(on) => { SettingsState.set-reminder-enabled(on); }
+                    }
+                    Rectangle {
+                        height: 56px;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            Text {
+                                text: "Reminder time";
+                                font-size: 14px;
+                                color: SettingsState.reminder-enabled ? Theme.text : Theme.text-muted;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                time-field := TextField {
+                                    width: 86px;
+                                    height: 40px;
+                                    font-family: Theme.mono;
+                                    text: SettingsState.reminder-time;
+                                    placeholder: "20:30";
+                                    accepted(t) => { self.text = SettingsState.set-reminder-time(t); }
+                                    edited(t) => {
+                                        // Save as soon as it's a full HH:MM.
+                                        if t.character-count == 5 {
+                                            SettingsState.set-reminder-time(t);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Rectangle {
+                            y: parent.height - 1px;
+                            height: 1px;
+                            background: Theme.divider;
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    SectionLabel { text: "SHUTDOWN CHECK"; height: self.preferred-height + 4px; }
+                    Rectangle {
+                        height: max(64px, sd.preferred-height);
+                        sd := HorizontalLayout {
+                            spacing: 12px;
+                            padding-top: 10px;
+                            padding-bottom: 10px;
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: 1px;
+                                horizontal-stretch: 1;
+                                Text { text: "Shutdown button"; font-size: 14px; color: Theme.text; }
+                                Text {
+                                    text: SettingsState.shortcut-notice != "" ? SettingsState.shortcut-notice : "Checks your plan before shutting down";
+                                    font-size: 12px;
+                                    color: Theme.text-muted;
+                                    wrap: word-wrap;
+                                }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                Button {
+                                    text: "Create shortcut";
+                                    weight: 500;
+                                    padding-x: 14px;
+                                    clicked => { SettingsState.create-shortcut(); }
+                                }
+                            }
+                        }
+                        Rectangle {
+                            y: parent.height - 1px;
+                            height: 1px;
+                            background: Theme.divider;
+                        }
+                    }
+                    ToggleRow {
+                        title: "Also check today's X";
+                        description: "Reminds you if a project or habit isn't marked";
+                        checked: SettingsState.check-today-x;
+                        toggled(on) => { SettingsState.set-check-today-x(on); }
+                    }
+                }
+
+                if AppState.card.has-project: VerticalLayout {
+                    spacing: 12px;
+                    SectionLabel { text: "CURRENT CARD · " + AppState.card.name.to-uppercase(); }
+                    VerticalLayout {
+                        spacing: 6px;
+                        FieldLabel { text: AppState.card.is-habit ? "Habit" : "Project"; }
+                        TextField {
+                            text: AppState.card.name;
+                            edited(t) => { SettingsState.rename-project(t); }
+                        }
+                    }
+                    VerticalLayout {
+                        spacing: 6px;
+                        FieldLabel { text: "Minimum to earn an X"; }
+                        TextField {
+                            text: AppState.card.minimum;
+                            edited(t) => { SettingsState.set-minimum(t); }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        for opt[i] in ["Habit", "Project"]: Rectangle {
+                            height: 44px;
+                            horizontal-stretch: 1;
+                            border-radius: Theme.button-radius;
+                            background: Theme.surface;
+                            border-width: 1px;
+                            border-color: (i == 0) == AppState.card.is-habit ? AppState.card.pal.main : Theme.border;
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                spacing: 10px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    Radio { checked: (i == 0) == AppState.card.is-habit; tint: AppState.card.pal.main; size: 16px; }
+                                }
+                                Text { text: opt; font-size: 14px; color: Theme.text; vertical-alignment: center; horizontal-stretch: 1; }
+                            }
+                            TouchArea {
+                                clicked => { SettingsState.set-habit(i == 0); }
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        Button {
+                            text: "Start a new 49-day card";
+                            weight: 500;
+                            padding-x: 14px;
+                            fill: transparent;
+                            fill-hover: Theme.surface-2;
+                            outline: Theme.border-strong;
+                            clicked => { AppState.start-new-card(); }
+                        }
+                        Button {
+                            text: "Archive";
+                            weight: 500;
+                            padding-x: 14px;
+                            fill: transparent;
+                            fill-hover: Theme.surface-2;
+                            outline: Theme.border-strong;
+                            ink: Theme.text-muted;
+                            clicked => { SettingsState.archive-project(); }
+                        }
+                    }
+                    Hint { text: "Archiving hides it from the app. Its history stays in data.json."; }
+                }
+
+                VerticalLayout {
+                    spacing: 10px;
+                    SectionLabel { text: "DATA"; }
+                    Rectangle {
+                        border-radius: Theme.card-radius;
+                        background: Theme.surface;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        height: 64px;
+                        HorizontalLayout {
+                            padding: 10px;
+                            padding-left: 14px;
+                            spacing: 10px;
+                            Text {
+                                text: SettingsState.data-path;
+                                font-family: Theme.mono;
+                                font-size: 12px;
+                                color: Theme.text-soft;
+                                vertical-alignment: center;
+                                overflow: elide;
+                                horizontal-stretch: 1;
+                            }
+                            Button {
+                                text: "Open folder";
+                                font-size: 13px;
+                                weight: 500;
+                                padding-x: 12px;
+                                clicked => { SettingsState.open-data-folder(); }
+                            }
+                        }
+                    }
+                    Hint { text: "Plain JSON, so you or Claude can read and update it during the evening check-in."; }
+                }
+            }
+        }
+    }
+}

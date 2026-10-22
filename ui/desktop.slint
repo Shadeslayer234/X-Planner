@@ -1,0 +1,232 @@
+// The compact widget used in "Pinned to desktop" mode, 300 px wide.
+// See design/screens/Desktop.dc.html.
+
+import { Theme, Icons } from "theme.slint";
+import { AppState } from "state.slint";
+import { Icon, Button, Link, Dot, Checkbox, StrikeText, XGrid } from "widgets.slint";
+import { ProjectMenu } from "main_page.slint";
+
+export component DesktopWidget inherits Window {
+    property <bool> menu-open: false;
+    title: "X Planner widget";
+    no-frame: true;
+    default-font-family: Theme.sans;
+    background: Theme.bg;
+    width: 300px;
+    // Grow while the dropdown is open so it isn't cut off.
+    height: max(lay.preferred-height, menu-open ? 62px + menu.preferred-height : 0px);
+
+    Rectangle {
+        border-width: 1px;
+        border-color: Theme.border;
+    }
+
+    lay := VerticalLayout {
+        alignment: start;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 14px;
+        padding-bottom: 16px;
+        spacing: 14px;
+
+        // Project dropdown and streak. The negative padding lines the dot up
+        // with the content below while keeping a roomy hover area.
+        HorizontalLayout {
+            padding-left: -8px;
+            spacing: 8px;
+            Rectangle {
+                height: 44px;
+                width: name-row.preferred-width;
+                border-radius: Theme.button-radius;
+                background: switch-ta.has-hover ? Theme.surface-2 : transparent;
+                name-row := HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 10px;
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        Dot { tint: AppState.card.pal.main; size: 8px; }
+                    }
+                    Text {
+                        text: AppState.card.has-project ? AppState.card.name : "X Planner";
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Icon { source: Icons.chevron-down; width: 14px; height: 14px; }
+                    }
+                }
+                switch-ta := TouchArea {
+                    clicked => { menu-open = !menu-open; }
+                }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            if AppState.card.has-project: HorizontalLayout {
+                spacing: 6px;
+                Text {
+                    text: AppState.card.streak;
+                    font-family: Theme.mono;
+                    font-size: 20px;
+                    font-weight: 500;
+                    color: AppState.card.pal.main;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: "day streak";
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                    vertical-alignment: center;
+                    y: 2px;
+                }
+            }
+        }
+
+        if !AppState.card.has-project: Text {
+            text: "No projects yet.";
+            font-size: 13px;
+            color: Theme.text-muted;
+        }
+
+        // Small grid next to the day count, minimum and Mark today.
+        if AppState.card.has-project: HorizontalLayout {
+            spacing: 14px;
+            VerticalLayout {
+                alignment: center;
+                XGrid {
+                    width: 126px;
+                    gap: 3px;
+                    small: true;
+                    cells: AppState.cells;
+                    pal: AppState.card.pal;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 3px;
+                horizontal-stretch: 1;
+                Text {
+                    text: AppState.card.day-label;
+                    font-family: Theme.mono;
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                }
+                Text {
+                    text: "Min: " + AppState.card.minimum;
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                    wrap: word-wrap;
+                }
+                Rectangle { height: 6px; }
+                HorizontalLayout {
+                    alignment: start;
+                    if AppState.card.can-mark && !AppState.card.marked: Button {
+                        text: "Mark today";
+                        font-size: 13px;
+                        padding-x: 12px;
+                        fill: AppState.card.pal.main;
+                        ink: AppState.card.pal.ink;
+                        clicked => { AppState.toggle-mark(); }
+                    }
+                    if AppState.card.can-mark && AppState.card.marked: Button {
+                        text: "Marked · Undo";
+                        font-size: 13px;
+                        weight: 500;
+                        padding-x: 12px;
+                        fill: transparent;
+                        fill-hover: AppState.card.pal.tint;
+                        outline: AppState.card.pal.border;
+                        ink: AppState.card.pal.main;
+                        clicked => { AppState.toggle-mark(); }
+                    }
+                }
+            }
+        }
+
+        // Up to 3 tasks, or the habit line. Then the dots and the link.
+        VerticalLayout {
+            Rectangle {
+                height: 1px;
+                background: Theme.header-line;
+            }
+            Rectangle { height: 6px; }
+            if AppState.card.has-project && !AppState.card.is-habit: VerticalLayout {
+                for t[i] in AppState.tasks: Rectangle {
+                    visible: i < 3;
+                    height: i < 3 ? max(36px, row.preferred-height) : 0px;
+                    row := HorizontalLayout {
+                        spacing: 10px;
+                        VerticalLayout {
+                            alignment: center;
+                            Checkbox {
+                                size: 16px;
+                                checked: t.done;
+                                tint: AppState.card.pal.main;
+                                ink: AppState.card.pal.ink;
+                            }
+                        }
+                        StrikeText {
+                            text: t.text;
+                            struck: t.done;
+                            font-size: 13px;
+                            color: t.done ? Theme.text-done : Theme.text;
+                            vertical-alignment: center;
+                            overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                    }
+                    TouchArea {
+                        clicked => { AppState.toggle-task(t.id); }
+                    }
+                }
+                if AppState.tasks.length == 0: Text {
+                    text: "No tasks today.";
+                    font-size: 13px;
+                    color: Theme.text-muted;
+                    height: 36px;
+                    vertical-alignment: center;
+                }
+            }
+            if AppState.card.has-project && AppState.card.is-habit: Text {
+                text: "Habit · nothing to plan. Do your " + AppState.card.minimum + ", then mark the X.";
+                font-size: 13px;
+                color: Theme.text-soft;
+                wrap: word-wrap;
+                height: self.preferred-height + 16px;
+                vertical-alignment: center;
+            }
+            HorizontalLayout {
+                padding-top: 6px;
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: start;
+                    horizontal-stretch: 1;
+                    for p in AppState.projects: VerticalLayout {
+                        alignment: center;
+                        Dot { tint: p.pal.main; size: 8px; hollow: !p.marked; }
+                    }
+                }
+                Link {
+                    text: "Open full view";
+                    vertical-alignment: center;
+                    clicked => { AppState.open-full-view(); }
+                }
+            }
+        }
+    }
+
+    if menu-open: TouchArea {
+        clicked => { menu-open = false; }
+    }
+    menu := ProjectMenu {
+        visible: menu-open;
+        compact: true;
+        x: 8px;
+        y: 62px;
+        width: 284px;
+        picked => { menu-open = false; }
+    }
+}

@@ -1,0 +1,554 @@
+// The main window page: title bar, project switcher, X card, today's tasks
+// and the planning footer. See design/screens/Main.dc.html.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons } from "theme.slint";
+import { AppState, Page } from "state.slint";
+import { Icon, IconButton, Button, SectionLabel, Dot, Checkbox, TextField, StrikeText, XGrid } from "widgets.slint";
+
+// Weekday and date on the left, window buttons on the right. Dragging the
+// empty part moves the frameless window.
+component TitleBar inherits Rectangle {
+    height: 53px;
+    TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+                AppState.start-drag();
+            }
+        }
+    }
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 6px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+            Text {
+                text: AppState.weekday;
+                font-size: 15px;
+                font-weight: 600;
+                color: Theme.text;
+                vertical-alignment: center;
+            }
+            Text {
+                text: AppState.date-label;
+                font-family: Theme.mono;
+                font-size: 12px;
+                color: Theme.text-muted;
+                vertical-alignment: center;
+                y: 1px;
+            }
+        }
+        HorizontalLayout {
+            spacing: 2px;
+            alignment: end;
+            IconButton {
+                icon: Icons.pin;
+                active: AppState.pinned-mode;
+                clicked => { AppState.toggle-pin(); }
+            }
+            IconButton {
+                icon: Icons.settings;
+                clicked => { AppState.open-settings(); }
+            }
+            IconButton {
+                icon: Icons.minus;
+                clicked => { AppState.hide-window(); }
+            }
+        }
+    }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.header-line;
+    }
+}
+
+// The button that opens the project dropdown.
+component Switcher inherits Rectangle {
+    callback clicked;
+    height: 60px;
+    border-radius: Theme.card-radius;
+    background: ta.has-hover ? #20242A : Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Dot { tint: AppState.card.pal.main; }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+            horizontal-stretch: 1;
+            Text {
+                text: AppState.card.name;
+                font-size: 16px;
+                font-weight: 600;
+                color: Theme.text;
+                overflow: elide;
+            }
+            Text {
+                text: AppState.card.kind-label;
+                font-size: 12px;
+                color: Theme.text-muted;
+                overflow: elide;
+            }
+        }
+        Text {
+            text: AppState.x-today-label;
+            font-family: Theme.mono;
+            font-size: 12px;
+            color: Theme.text-muted;
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Icons.chevron-down;
+                width: 16px;
+                height: 16px;
+            }
+        }
+    }
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// The dropdown list of projects plus "New project or habit".
+export component ProjectMenu inherits Rectangle {
+    in property <bool> compact: false;
+    callback picked();
+    background: Theme.menu-bg;
+    border-width: 1px;
+    border-color: Theme.menu-border;
+    border-radius: Theme.card-radius;
+    height: lay.preferred-height;
+    lay := VerticalLayout {
+        padding: 6px;
+        for p in AppState.projects: Rectangle {
+            height: compact ? 48px : 52px;
+            border-radius: Theme.button-radius;
+            background: p.selected ? Theme.menu-selected : row-ta.has-hover ? #262A30 : transparent;
+            HorizontalLayout {
+                padding-left: 10px;
+                padding-right: 10px;
+                spacing: compact ? 10px : 12px;
+                VerticalLayout {
+                    alignment: center;
+                    Dot { tint: p.pal.main; size: 8px; }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 1px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: p.name;
+                        font-size: 14px;
+                        font-weight: compact ? 400 : 500;
+                        color: Theme.text;
+                        overflow: elide;
+                    }
+                    Text {
+                        text: p.kind-label;
+                        font-size: compact ? 11px : 12px;
+                        color: Theme.text-muted;
+                        overflow: elide;
+                    }
+                }
+                if p.marked: VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.xmark-bold;
+                        width: 14px;
+                        height: 14px;
+                        tint: p.pal.main;
+                    }
+                }
+                if !p.marked: Text {
+                    text: "not yet";
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                    vertical-alignment: center;
+                }
+            }
+            row-ta := TouchArea {
+                clicked => {
+                    AppState.select-project(p.id);
+                    root.picked();
+                }
+            }
+        }
+        if AppState.projects.length > 0: Rectangle {
+            height: 9px;
+            Rectangle {
+                height: 1px;
+                width: parent.width - 8px;
+                background: #2E3238;
+            }
+        }
+        Rectangle {
+            height: 44px;
+            border-radius: Theme.button-radius;
+            background: new-ta.has-hover ? #262A30 : transparent;
+            HorizontalLayout {
+                padding-left: 10px;
+                spacing: 12px;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.plus;
+                        width: 14px;
+                        height: 14px;
+                        tint: Theme.text-soft;
+                    }
+                }
+                Text {
+                    text: "New project or habit";
+                    font-size: 14px;
+                    color: Theme.text-soft;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+            }
+            new-ta := TouchArea {
+                clicked => {
+                    root.picked();
+                    AppState.new-project();
+                }
+            }
+        }
+    }
+}
+
+// The big X card: day count, minimum, streak, grid and the mark button.
+component XCard inherits Rectangle {
+    border-radius: Theme.card-radius;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 16px;
+        HorizontalLayout {
+            spacing: 12px;
+            VerticalLayout {
+                spacing: 3px;
+                alignment: start;
+                horizontal-stretch: 1;
+                Text {
+                    text: AppState.card.day-label;
+                    font-family: Theme.mono;
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "Minimum to earn an X: " + AppState.card.minimum;
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                    wrap: word-wrap;
+                }
+            }
+            VerticalLayout {
+                alignment: start;
+                Text {
+                    text: AppState.card.streak;
+                    font-family: Theme.mono;
+                    font-size: 26px;
+                    font-weight: 500;
+                    color: AppState.card.pal.main;
+                    horizontal-alignment: right;
+                }
+                Text {
+                    text: "day streak";
+                    font-size: 12px;
+                    color: Theme.text-muted;
+                    horizontal-alignment: right;
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: center;
+            XGrid {
+                width: 280px;
+                cells: AppState.cells;
+                pal: AppState.card.pal;
+            }
+        }
+        if AppState.card.can-mark && !AppState.card.marked: Button {
+            text: "Mark today's X";
+            has-icon: true;
+            icon: Icons.xmark-bold;
+            fill: AppState.card.pal.main;
+            ink: AppState.card.pal.ink;
+            clicked => { AppState.toggle-mark(); }
+        }
+        if AppState.card.can-mark && AppState.card.marked: Button {
+            text: "Today's X is marked · Undo";
+            has-icon: true;
+            icon: Icons.check;
+            weight: 500;
+            fill: transparent;
+            fill-hover: AppState.card.pal.tint;
+            outline: AppState.card.pal.border;
+            ink: AppState.card.pal.main;
+            clicked => { AppState.toggle-mark(); }
+        }
+        if AppState.card.complete: Button {
+            text: "Card complete · Start a new 49-day card";
+            weight: 500;
+            fill: transparent;
+            fill-hover: Theme.surface-2;
+            outline: Theme.border-strong;
+            clicked => { AppState.start-new-card(); }
+        }
+        if !AppState.card.can-mark && !AppState.card.complete: Button {
+            text: "The card starts tomorrow";
+            weight: 500;
+            enabled: false;
+            fill: transparent;
+            outline: Theme.border;
+            ink: Theme.text-muted;
+        }
+    }
+}
+
+// Today's tasks with checkboxes and an add-task input.
+component TaskSection inherits VerticalLayout {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 20px;
+    padding-bottom: 10px;
+    HorizontalLayout {
+        padding-bottom: 6px;
+        SectionLabel { text: "TODAY'S TASKS"; horizontal-stretch: 1; }
+        Text {
+            text: AppState.done-label;
+            font-family: Theme.mono;
+            font-size: 12px;
+            color: Theme.text-muted;
+        }
+    }
+    ScrollView {
+        vertical-stretch: 1;
+        VerticalLayout {
+            alignment: start;
+            for t in AppState.tasks: Rectangle {
+                height: max(46px, row.preferred-height);
+                row := HorizontalLayout {
+                    spacing: 12px;
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        Checkbox {
+                            checked: t.done;
+                            tint: AppState.card.pal.main;
+                            ink: AppState.card.pal.ink;
+                        }
+                    }
+                    StrikeText {
+                        text: t.text;
+                        struck: t.done;
+                        font-size: 14px;
+                        color: t.done ? Theme.text-done : Theme.text;
+                        vertical-alignment: center;
+                        wrap: word-wrap;
+                        horizontal-stretch: 1;
+                    }
+                }
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: Theme.divider;
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { AppState.toggle-task(t.id); }
+                }
+            }
+            if AppState.tasks.length == 0: Text {
+                text: "No tasks today. The X still counts if you hit the minimum.";
+                font-size: 13px;
+                color: Theme.text-muted;
+                wrap: word-wrap;
+                height: self.preferred-height + 24px;
+                vertical-alignment: center;
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        padding-top: 12px;
+        new-task := TextField {
+            horizontal-stretch: 1;
+            placeholder: "Add a task to " + AppState.card.name;
+            accepted(text) => {
+                AppState.add-task(text);
+                self.clear();
+            }
+        }
+        IconButton {
+            icon: Icons.plus;
+            tint: Theme.text;
+            fill: Theme.surface;
+            border-width: 1px;
+            border-color: Theme.border;
+            clicked => {
+                AppState.add-task(new-task.text);
+                new-task.clear();
+                new-task.focus-input();
+            }
+        }
+    }
+}
+
+// "Tomorrow isn't planned yet" with a Plan now button.
+component PlanFooter inherits Rectangle {
+    VerticalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 14px;
+        padding-bottom: 16px;
+        Rectangle {
+            border-radius: Theme.card-radius;
+            background: Theme.surface;
+            border-width: 1px;
+            border-color: Theme.border;
+            HorizontalLayout {
+                padding: 10px;
+                padding-left: 14px;
+                spacing: 12px;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: AppState.tomorrow-planned ? Icons.check : Icons.moon;
+                        width: 20px;
+                        height: 20px;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: AppState.plan-title;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: Theme.text;
+                    }
+                    Text {
+                        text: AppState.plan-detail;
+                        font-size: 12px;
+                        color: Theme.text-muted;
+                        wrap: word-wrap;
+                    }
+                }
+                Button {
+                    text: AppState.tomorrow-planned ? "Review" : "Plan now";
+                    clicked => { AppState.plan-now(); }
+                }
+            }
+        }
+    }
+    Rectangle {
+        y: 0;
+        height: 1px;
+        background: Theme.header-line;
+    }
+}
+
+// Shown when there are no projects yet.
+component EmptyCard inherits Rectangle {
+    border-radius: Theme.card-radius;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+    VerticalLayout {
+        padding: 24px;
+        spacing: 12px;
+        Text {
+            text: "Start your first card";
+            font-size: 18px;
+            font-weight: 600;
+            color: Theme.text;
+        }
+        Text {
+            text: "Each project or habit gets a 49-day card. Mark one X per day when you do at least the minimum.";
+            font-size: 14px;
+            color: Theme.text-muted;
+            wrap: word-wrap;
+        }
+        Button {
+            text: "New project or habit";
+            fill: #F0B445;
+            ink: #1A1405;
+            clicked => { AppState.new-project(); }
+        }
+    }
+}
+
+export component MainPage inherits Rectangle {
+    property <bool> menu-open: false;
+    VerticalLayout {
+        TitleBar { }
+        if AppState.card.has-project: VerticalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 16px;
+            vertical-stretch: 0;
+            Switcher {
+                clicked => { menu-open = !menu-open; }
+            }
+        }
+        if AppState.card.has-project: VerticalLayout {
+            vertical-stretch: 0;
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 12px;
+            XCard { }
+        }
+        if !AppState.card.has-project: VerticalLayout {
+            padding: 16px;
+            EmptyCard { }
+        }
+        if AppState.card.has-project && !AppState.card.is-habit: TaskSection {
+            vertical-stretch: 1;
+        }
+        if AppState.card.has-project && AppState.card.is-habit: VerticalLayout {
+            vertical-stretch: 1;
+            alignment: start;
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-top: 24px;
+            padding-bottom: 10px;
+            spacing: 8px;
+            SectionLabel { text: "HABIT"; }
+            Text {
+                text: "Nothing to plan here. Do your " + AppState.card.minimum + ", then mark today's X.";
+                font-size: 14px;
+                color: Theme.text-soft;
+                wrap: word-wrap;
+            }
+        }
+        if !AppState.card.has-project: Rectangle { vertical-stretch: 1; }
+        if AppState.has-plannable: PlanFooter { }
+    }
+
+    if menu-open: TouchArea {
+        clicked => { menu-open = false; }
+    }
+    if menu-open: ProjectMenu {
+        x: 16px;
+        y: 53px + 16px + 60px + 4px;
+        width: parent.width - 32px;
+        picked => { menu-open = false; }
+    }
+}

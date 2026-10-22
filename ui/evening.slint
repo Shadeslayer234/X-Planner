@@ -1,0 +1,412 @@
+// Evening planning: one accordion section per project, habits at the bottom.
+// See design/screens/EveningPlan.dc.html. Changes are saved as you make them,
+// so Claude's edits to data.json show up here live.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons, Pal } from "theme.slint";
+import { AppState, Page } from "state.slint";
+import { Icon, IconButton, Button, SectionLabel, Dot, Checkbox, TextField } from "widgets.slint";
+import { PageHeader } from "new_project.slint";
+
+export struct LeftoverRow {
+    id: string,
+    text: string,
+    carried: bool,
+}
+
+export struct TomorrowRow {
+    id: string,
+    num: string,
+    text: string,
+}
+
+export struct PlanGroup {
+    id: string,
+    name: string,
+    pal: Pal,
+    planned: bool,
+    // "2 tasks"
+    status-text: string,
+    leftover: [LeftoverRow],
+    // "1 done today"
+    done-line: string,
+    tomorrow: [TomorrowRow],
+}
+
+export struct HabitStatus {
+    name: string,
+    pal: Pal,
+    status: string,
+}
+
+export global PlanState {
+    // "Friday" and "23 Oct 2026"
+    in property <string> weekday;
+    in property <string> weekday-upper;
+    in property <string> date-label;
+    // The section to open first.
+    in property <string> first-open;
+    // "1 of 3 planned"
+    in property <string> summary;
+    in property <[PlanGroup]> groups;
+    in property <[HabitStatus]> habits;
+    // A short message, e.g. after the Claude prompt was copied.
+    in-out property <string> notice;
+
+    callback toggle-carry(string);
+    callback remove-task(string);
+    // project id, text
+    callback add-task(string, string);
+    callback plan-with-claude(string);
+    callback remind-later();
+    callback save-plan();
+}
+
+component GroupCard inherits Rectangle {
+    in property <PlanGroup> g;
+    in property <bool> expanded;
+    callback toggle;
+    border-radius: Theme.card-radius;
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: expanded ? Theme.border-strong : Theme.border;
+    height: lay.preferred-height;
+    lay := VerticalLayout {
+        Rectangle {
+            height: 56px;
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 14px;
+                spacing: 12px;
+                VerticalLayout {
+                    alignment: center;
+                    Dot { tint: g.pal.main; }
+                }
+                Text {
+                    text: g.name;
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                }
+                if g.planned: HorizontalLayout {
+                    spacing: 6px;
+                    VerticalLayout {
+                        alignment: center;
+                        Icon { source: Icons.check; width: 14px; height: 14px; tint: g.pal.main; }
+                    }
+                    Text {
+                        text: g.status-text;
+                        font-size: 12px;
+                        color: Theme.text-muted;
+                        vertical-alignment: center;
+                    }
+                }
+                if !g.planned: Text {
+                    text: "Not planned";
+                    font-size: 12px;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: expanded ? Icons.chevron-up : Icons.chevron-down;
+                        width: 16px;
+                        height: 16px;
+                    }
+                }
+            }
+            TouchArea {
+                clicked => { root.toggle(); }
+            }
+        }
+        if expanded: Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+        if expanded: VerticalLayout {
+            padding-left: 14px;
+            padding-right: 14px;
+            padding-top: 4px;
+            padding-bottom: 16px;
+            spacing: 18px;
+
+            if g.leftover.length > 0: VerticalLayout {
+                padding-top: 10px;
+                HorizontalLayout {
+                    padding-bottom: 2px;
+                    SectionLabel { text: "LEFT FROM TODAY"; horizontal-stretch: 1; }
+                    Text {
+                        text: g.done-line;
+                        font-family: Theme.mono;
+                        font-size: 12px;
+                        color: Theme.text-muted;
+                    }
+                }
+                for r in g.leftover: Rectangle {
+                    height: max(44px, row.preferred-height);
+                    row := HorizontalLayout {
+                        spacing: 12px;
+                        padding-top: 6px;
+                        padding-bottom: 6px;
+                        VerticalLayout {
+                            alignment: center;
+                            Checkbox { checked: r.carried; tint: g.pal.main; ink: g.pal.ink; }
+                        }
+                        VerticalLayout {
+                            spacing: 1px;
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            Text { text: r.text; font-size: 14px; color: Theme.text; wrap: word-wrap; }
+                            Text { text: "Carry over to " + PlanState.weekday; font-size: 12px; color: Theme.text-muted; }
+                        }
+                    }
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: Theme.divider-2;
+                    }
+                    TouchArea {
+                        clicked => { PlanState.toggle-carry(r.id); }
+                    }
+                }
+            }
+
+            VerticalLayout {
+                padding-top: 6px;
+                SectionLabel {
+                    text: PlanState.weekday-upper;
+                    height: self.preferred-height + 2px;
+                }
+                for t in g.tomorrow: Rectangle {
+                    height: max(44px, trow.preferred-height);
+                    trow := HorizontalLayout {
+                        spacing: 10px;
+                        Text {
+                            text: t.num;
+                            width: 18px;
+                            font-family: Theme.mono;
+                            font-size: 12px;
+                            color: Theme.text-muted;
+                            vertical-alignment: center;
+                        }
+                        Text {
+                            text: t.text;
+                            font-size: 14px;
+                            color: Theme.text;
+                            vertical-alignment: center;
+                            wrap: word-wrap;
+                            horizontal-stretch: 1;
+                        }
+                        IconButton {
+                            icon: Icons.close;
+                            icon-size: 16px;
+                            clicked => { PlanState.remove-task(t.id); }
+                        }
+                    }
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: Theme.divider-2;
+                    }
+                }
+                if g.tomorrow.length == 0: Text {
+                    text: "Nothing planned yet.";
+                    font-size: 13px;
+                    color: Theme.text-muted;
+                    height: 40px;
+                    vertical-alignment: center;
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    padding-top: 10px;
+                    draft := TextField {
+                        horizontal-stretch: 1;
+                        placeholder: "Add a task";
+                        fill: Theme.bg;
+                        accepted(text) => {
+                            PlanState.add-task(g.id, text);
+                            self.clear();
+                        }
+                    }
+                    IconButton {
+                        icon: Icons.plus;
+                        tint: Theme.text;
+                        fill: Theme.bg;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        clicked => {
+                            PlanState.add-task(g.id, draft.text);
+                            draft.clear();
+                            draft.focus-input();
+                        }
+                    }
+                }
+            }
+
+            Button {
+                text: "Plan " + g.name + " with Claude";
+                has-icon: true;
+                icon: Icons.message;
+                icon-color: g.pal.main;
+                weight: 500;
+                fill: transparent;
+                fill-hover: Theme.surface-2;
+                outline: Theme.border-strong;
+                clicked => { PlanState.plan-with-claude(g.id); }
+            }
+        }
+    }
+}
+
+export component EveningPage inherits Rectangle {
+    property <string> open-id;
+
+    // Opens on the first project that isn't planned yet.
+    init => { open-id = PlanState.first-open; }
+
+    VerticalLayout {
+        PageHeader {
+            title: "EVENING PLANNING";
+            close => { AppState.page = Page.main; }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                alignment: start;
+                padding-left: 16px;
+                padding-right: 16px;
+                padding-top: 22px;
+                padding-bottom: 20px;
+                spacing: 20px;
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    VerticalLayout {
+                        spacing: 4px;
+                        horizontal-stretch: 1;
+                        Text {
+                            text: "Plan " + PlanState.weekday;
+                            font-size: 24px;
+                            font-weight: 600;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: PlanState.date-label;
+                            font-family: Theme.mono;
+                            font-size: 13px;
+                            color: Theme.text-muted;
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: end;
+                        padding-bottom: 2px;
+                        Text {
+                            text: PlanState.summary;
+                            font-family: Theme.mono;
+                            font-size: 12px;
+                            color: Theme.text-muted;
+                        }
+                    }
+                }
+
+                if PlanState.notice != "": Rectangle {
+                    border-radius: Theme.button-radius;
+                    background: #1F1C15;
+                    border-width: 1px;
+                    border-color: #4A3C1E;
+                    height: notice.preferred-height + 20px;
+                    notice := Text {
+                        x: 12px;
+                        width: parent.width - 24px;
+                        text: PlanState.notice;
+                        font-size: 13px;
+                        color: Theme.text;
+                        wrap: word-wrap;
+                    }
+                }
+
+                if PlanState.groups.length == 0: Text {
+                    text: "No projects to plan. Habits only need today's X.";
+                    font-size: 14px;
+                    color: Theme.text-muted;
+                    wrap: word-wrap;
+                }
+
+                VerticalLayout {
+                    spacing: 10px;
+                    for g in PlanState.groups: GroupCard {
+                        g: g;
+                        expanded: open-id == g.id;
+                        toggle => { open-id = open-id == g.id ? "" : g.id; }
+                    }
+                }
+
+                if PlanState.habits.length > 0: VerticalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    SectionLabel {
+                        text: "HABITS · NOTHING TO PLAN";
+                        height: self.preferred-height + 2px;
+                    }
+                    for h in PlanState.habits: Rectangle {
+                        height: 44px;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            VerticalLayout {
+                                alignment: center;
+                                Dot { tint: h.pal.main; size: 8px; }
+                            }
+                            Text {
+                                text: h.name;
+                                font-size: 14px;
+                                color: Theme.text;
+                                vertical-alignment: center;
+                                horizontal-stretch: 1;
+                            }
+                            Text {
+                                text: h.status;
+                                font-size: 12px;
+                                color: Theme.text-muted;
+                                vertical-alignment: center;
+                            }
+                        }
+                        Rectangle {
+                            y: parent.height - 1px;
+                            height: 1px;
+                            background: Theme.divider;
+                        }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            height: 1px;
+            background: Theme.header-line;
+        }
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 14px;
+            padding-bottom: 16px;
+            spacing: 10px;
+            Button {
+                text: "Remind me in 30 min";
+                weight: 500;
+                horizontal-stretch: 1;
+                clicked => { PlanState.remind-later(); }
+            }
+            Button {
+                text: "Save plan";
+                fill: Theme.text;
+                ink: Theme.bg;
+                horizontal-stretch: 1;
+                clicked => { PlanState.save-plan(); }
+            }
+        }
+    }
+}

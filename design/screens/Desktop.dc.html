@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>X Planner — Pinned to desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F11}
+a{color:#F0B445}a:hover{color:#F6C76B}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; position: relative; overflow: hidden; background: #2B3640; color: #E9EAEC; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+  <div style="position: absolute; left: 20px; top: 20px; display: flex; flex-direction: column; gap: 18px">
+    <sc-for list="{{icons}}" as="ic" hint-placeholder-count="3">
+      <div style="width: 76px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+        <div style="width: 44px; height: 44px; border-radius: 8px; background: #46535E"></div>
+        <div style="font-size: 12px; color: #F1F3F5">{{ic.label}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); font-size: 13px; letter-spacing: 0.08em; color: #8696A3">[YOUR WALLPAPER]</div>
+
+  <div style="position: absolute; right: 28px; top: 28px; width: 300px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 14px 16px 16px; background: #141619; border: 1px solid #2A2E34; border-radius: 12px">
+
+    <div style="position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+      <button onClick="{{toggleMenu}}" aria-haspopup="listbox" aria-expanded="{{menuOpen}}" aria-label="Switch project" style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 8px; margin-left: -8px; background: transparent; border: 0; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer">
+        <span style="width: 8px; height: 8px; border-radius: 4px; background: {{cur.color}}"></span>
+        {{cur.name}}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A0A6AD" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+      <div style="display: flex; align-items: baseline; gap: 6px">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; color: {{cur.color}}">{{cur.streak}}</div>
+        <div style="font-size: 12px; color: #A0A6AD">day streak</div>
+      </div>
+
+      <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+        <div role="listbox" aria-label="Projects" style="position: absolute; left: -8px; top: 48px; z-index: 5; width: 284px; box-sizing: border-box; display: flex; flex-direction: column; padding: 6px; background: #1F2328; border: 1px solid #353A41; border-radius: 10px">
+          <sc-for list="{{projects}}" as="p" hint-placeholder-count="4">
+            <button onClick="{{p.select}}" role="option" aria-selected="{{p.selected}}" style="min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 10px; background: {{p.rowBg}}; border: 0; border-radius: 8px; color: #E9EAEC; font-family: 'IBM Plex Sans', sans-serif; text-align: left; cursor: pointer">
+              <span style="width: 8px; height: 8px; border-radius: 4px; background: {{p.color}}; flex: none"></span>
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+                <span style="font-size: 14px">{{p.name}}</span>
+                <span style="font-size: 11px; color: #A0A6AD">{{p.kindLabel}}</span>
+              </span>
+              <sc-if value="{{p.marked}}" hint-placeholder-val="{{false}}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{p.color}}" stroke-width="3.2" stroke-linecap="round" role="img" aria-label="Today's X marked"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+              </sc-if>
+              <sc-if value="{{p.pending}}" hint-placeholder-val="{{true}}">
+                <span style="font-size: 12px; color: #A0A6AD">not yet</span>
+              </sc-if>
+            </button>
+          </sc-for>
+          <div style="height: 1px; background: #2E3238; margin: 4px"></div>
+          <a href="NewProject.dc.html" style="height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 8px; color: #C9CDD2; font-size: 14px; text-decoration: none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            New project or habit
+          </a>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; gap: 14px; align-items: center">
+      <div style="width: 126px; flex: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px">
+        <sc-for list="{{cells}}" as="c" hint-placeholder-count="49">
+          <sc-if value="{{c.isX}}" hint-placeholder-val="{{true}}">
+            <div style="aspect-ratio: 1 / 1; border-radius: 3px; background: {{c.color}}"></div>
+          </sc-if>
+          <sc-if value="{{c.isMiss}}" hint-placeholder-val="{{false}}">
+            <div style="aspect-ratio: 1 / 1; border-radius: 3px; background: #3A3F46"></div>
+          </sc-if>
+          <sc-if value="{{c.isToday}}" hint-placeholder-val="{{false}}">
+            <div style="aspect-ratio: 1 / 1; box-sizing: border-box; border-radius: 3px; border: 1.5px solid {{c.color}}"></div>
+          </sc-if>
+          <sc-if value="{{c.isFuture}}" hint-placeholder-val="{{false}}">
+            <div style="aspect-ratio: 1 / 1; border-radius: 3px; background: #22262B"></div>
+          </sc-if>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #A0A6AD">Day {{cur.day}} / 49</div>
+        <div style="font-size: 12px; color: #A0A6AD">Min: {{cur.min}}</div>
+        <sc-if value="{{cur.pending}}" hint-placeholder-val="{{true}}">
+          <button onClick="{{toggleMark}}" style="margin-top: 6px; align-self: flex-start; height: 44px; padding: 0 12px; background: {{cur.color}}; border: 0; border-radius: 8px; color: {{cur.ink}}; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer">Mark today</button>
+        </sc-if>
+        <sc-if value="{{cur.marked}}" hint-placeholder-val="{{false}}">
+          <button onClick="{{toggleMark}}" style="margin-top: 6px; align-self: flex-start; height: 44px; padding: 0 12px; background: transparent; border: 1px solid {{cur.border}}; border-radius: 8px; color: {{cur.color}}; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer">Marked · Undo</button>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; border-top: 1px solid #22262B; padding-top: 6px">
+      <sc-if value="{{cur.isProject}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column">
+          <sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
+            <label style="display: flex; align-items: center; gap: 10px; min-height: 36px; cursor: pointer">
+              <input type="checkbox" checked="{{t.done}}" onChange="{{t.toggle}}" style="width: 16px; height: 16px; margin: 0; flex: none; accent-color: {{t.color}}">
+              <sc-if value="{{t.done}}" hint-placeholder-val="{{false}}">
+                <span style="font-size: 13px; color: #80868E; text-decoration: line-through">{{t.text}}</span>
+              </sc-if>
+              <sc-if value="{{t.open}}" hint-placeholder-val="{{true}}">
+                <span style="font-size: 13px">{{t.text}}</span>
+              </sc-if>
+            </label>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{cur.isHabit}}" hint-placeholder-val="{{false}}">
+        <div style="font-size: 13px; line-height: 1.45; color: #C9CDD2; padding: 8px 0">Habit · nothing to plan. Do your {{cur.min}}, then mark the X.</div>
+      </sc-if>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px">
+        <div style="display: flex; gap: 6px" aria-label="{{dotsLabel}}" role="img">
+          <sc-for list="{{projects}}" as="p" hint-placeholder-count="4">
+            <sc-if value="{{p.marked}}" hint-placeholder-val="{{false}}">
+              <span style="width: 8px; height: 8px; border-radius: 4px; background: {{p.color}}"></span>
+            </sc-if>
+            <sc-if value="{{p.pending}}" hint-placeholder-val="{{true}}">
+              <span style="width: 8px; height: 8px; box-sizing: border-box; border-radius: 4px; border: 1.5px solid {{p.color}}"></span>
+            </sc-if>
+          </sc-for>
+        </div>
+        <a href="Main.dc.html" style="font-size: 12px; text-decoration: none">Open full view</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 52px; background: #181B1F; border-top: 1px solid #2A2E34; display: flex; align-items: center; justify-content: center; gap: 8px">
+    <div style="width: 40px; height: 40px; border-radius: 8px; background: #2E333A"></div>
+    <div style="width: 40px; height: 40px; border-radius: 8px; background: #2E333A"></div>
+    <div style="width: 40px; height: 40px; border-radius: 8px; background: #2E333A"></div>
+    <div style="width: 40px; height: 40px; border-radius: 8px; background: #2E333A"></div>
+    <div style="width: 1px; height: 24px; background: #3A3F46; margin: 0 4px"></div>
+    <button aria-label="Shut down after checking tomorrow's plan" style="position: relative; width: 44px; height: 44px; border-radius: 8px; background: #2A2418; border: 1px solid #6B5524; color: #F0B445; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v10"></path><path d="M18.4 6.6a9 9 0 1 1-12.77.04"></path></svg>
+    </button>
+  </div>
+
+  <div style="position: absolute; left: 50%; bottom: 64px; transform: translateX(calc(-50% + 128px)); padding: 8px 12px; background: #141619; border: 1px solid #2A2E34; border-radius: 8px; font-size: 13px; white-space: nowrap">Shut down <span style="color: #A0A6AD">· checks tomorrow's plan first</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  state = {
+    sel: 'pg',
+    menuOpen: false,
+    projects: [
+      { id: 'pg', name: 'Poltergeist', kind: 'project', min: '15 minutes', color: 'amber', day: 23, misses: [12], marked: false, tasks: [
+        { id: 1, text: 'Prototype the object-throw ability', done: true },
+        { id: 2, text: 'Fix the door interaction bug', done: false },
+        { id: 3, text: 'Record a 2-minute devlog clip', done: false }
+      ] },
+      { id: 'gd', name: 'Garden', kind: 'project', min: '10 minutes', color: 'green', day: 3, misses: [], marked: true, tasks: [
+        { id: 11, text: 'Water the chili seedlings', done: true },
+        { id: 12, text: 'Fill two grow bags with soil', done: false }
+      ] },
+      { id: 'un', name: 'Unity pathway', kind: 'project', min: '1 lesson', color: 'blue', day: 8, misses: [5], marked: false, tasks: [
+        { id: 21, text: 'Finish the next pathway lesson', done: false }
+      ] },
+      { id: 'md', name: 'Meditation', kind: 'habit', min: '10 minutes', color: 'rose', day: 5, misses: [], marked: false, tasks: [] }
+    ]
+  };
+
+  palette(key) {
+    const p = {
+      amber: { color: '#F0B445', border: '#4A3C1E', ink: '#1A1405' },
+      green: { color: '#7CC48A', border: '#2F4A35', ink: '#0D1A10' },
+      blue: { color: '#7FB0E0', border: '#2C4058', ink: '#0C1520' },
+      rose: { color: '#E58FA0', border: '#553039', ink: '#1E0C10' }
+    };
+    return p[key] || p.amber;
+  }
+
+  streakOf(p) {
+    let n = 0;
+    for (let d = p.day - 1; d >= 1 && p.misses.indexOf(d) === -1; d--) n++;
+    return n + (p.marked ? 1 : 0);
+  }
+
+  updateCur(fn) {
+    const sel = this.state.sel;
+    this.setState({ projects: this.state.projects.map((p) => (p.id === sel ? fn(p) : p)) });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const curP = s.projects.find((p) => p.id === s.sel) || s.projects[0];
+    const pal = this.palette(curP.color);
+
+    const projects = s.projects.map((p) => ({
+      name: p.name,
+      kindLabel: p.kind === 'habit' ? 'Habit' : 'Project',
+      color: this.palette(p.color).color,
+      selected: p.id === curP.id,
+      rowBg: p.id === curP.id ? '#2A2E35' : 'transparent',
+      marked: p.marked,
+      pending: !p.marked,
+      select: () => this.setState({ sel: p.id, menuOpen: false })
+    }));
+
+    const cells = [];
+    for (let i = 1; i <= 49; i++) {
+      const isPast = i < curP.day;
+      const isMiss = isPast && curP.misses.indexOf(i) !== -1;
+      cells.push({
+        color: pal.color,
+        isX: (isPast && !isMiss) || (i === curP.day && curP.marked),
+        isMiss: isMiss,
+        isToday: i === curP.day && !curP.marked,
+        isFuture: i > curP.day
+      });
+    }
+
+    const tasks = curP.tasks.slice(0, 3).map((t) => ({
+      text: t.text,
+      done: t.done,
+      open: !t.done,
+      color: pal.color,
+      toggle: () => this.updateCur((p) => Object.assign({}, p, {
+        tasks: p.tasks.map((x) => (x.id === t.id ? { id: x.id, text: x.text, done: !x.done } : x))
+      }))
+    }));
+
+    const markedCount = s.projects.filter((p) => p.marked).length;
+
+    return {
+      projects: projects,
+      cur: {
+        name: curP.name,
+        isHabit: curP.kind === 'habit',
+        isProject: curP.kind !== 'habit',
+        min: curP.min,
+        day: curP.day,
+        streak: this.streakOf(curP),
+        marked: curP.marked,
+        pending: !curP.marked,
+        color: pal.color,
+        border: pal.border,
+        ink: pal.ink
+      },
+      cells: cells,
+      tasks: tasks,
+      menuOpen: s.menuOpen,
+      dotsLabel: markedCount + ' of ' + s.projects.length + ' projects have today’s X',
+      icons: [{ label: 'Projects' }, { label: 'Poltergeist' }, { label: 'Devlog' }],
+      toggleMenu: () => this.setState({ menuOpen: !this.state.menuOpen }),
+      toggleMark: () => this.updateCur((p) => Object.assign({}, p, { marked: !p.marked }))
+    };
+  }
+}
+</script>
+</body>
+</html>

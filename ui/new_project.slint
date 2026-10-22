@@ -1,0 +1,316 @@
+// New project or habit form. See design/screens/NewProject.dc.html.
+// The page is rebuilt each time it opens, so the form starts empty.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme, Icons, Pal } from "theme.slint";
+import { AppState, Page } from "state.slint";
+import { Icon, IconButton, Button, Radio, Dot, TextField, XGrid } from "widgets.slint";
+
+// A page header: uppercase title on the left, close (or back) button.
+export component PageHeader inherits Rectangle {
+    in property <string> title;
+    in property <bool> back: false;
+    callback close;
+    height: 53px;
+    TouchArea {
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
+                AppState.start-drag();
+            }
+        }
+    }
+    HorizontalLayout {
+        padding-left: back ? 6px : 20px;
+        padding-right: 6px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        spacing: 4px;
+        if back: IconButton {
+            icon: Icons.back;
+            clicked => { root.close(); }
+        }
+        Text {
+            text: title;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            color: Theme.text-muted;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        if !back: IconButton {
+            icon: Icons.close;
+            clicked => { root.close(); }
+        }
+    }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.header-line;
+    }
+}
+
+export component FieldLabel inherits Text {
+    font-size: 13px;
+    color: Theme.text-muted;
+}
+
+export component Hint inherits Text {
+    font-size: 12px;
+    color: Theme.text-muted;
+    wrap: word-wrap;
+}
+
+// A radio card: a radio button with a title and a description.
+export component RadioCard inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <bool> checked;
+    in property <Pal> pal;
+    callback picked;
+    border-radius: Theme.card-radius;
+    background: checked ? pal.soft : ta.has-hover ? #20242A : Theme.surface;
+    border-width: 1px;
+    border-color: checked ? pal.main : Theme.border;
+    height: lay.preferred-height;
+    lay := HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: start;
+            padding-top: 2px;
+            Radio { checked: root.checked; tint: pal.main; }
+        }
+        VerticalLayout {
+            spacing: 2px;
+            horizontal-stretch: 1;
+            Text {
+                text: title;
+                font-size: 14px;
+                font-weight: 600;
+                color: Theme.text;
+            }
+            Text {
+                text: description;
+                font-size: 13px;
+                color: Theme.text-muted;
+                wrap: word-wrap;
+            }
+        }
+    }
+    ta := TouchArea {
+        clicked => { root.picked(); }
+    }
+}
+
+export component NewProjectPage inherits Rectangle {
+    property <string> name;
+    property <string> minimum;
+    property <bool> habit: false;
+    property <int> color-index: 0;
+    property <bool> start-tomorrow: false;
+    property <Pal> pal: AppState.palettes[color-index];
+    property <bool> valid: name != "" && minimum != "";
+
+    function create() {
+        if valid {
+            AppState.create-project(name, habit, minimum, color-index, start-tomorrow);
+        }
+    }
+
+    VerticalLayout {
+        PageHeader {
+            title: "NEW PROJECT OR HABIT";
+            close => { AppState.page = Page.main; }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            VerticalLayout {
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-top: 22px;
+                padding-bottom: 20px;
+                spacing: 22px;
+                alignment: start;
+
+                VerticalLayout {
+                    spacing: 6px;
+                    FieldLabel { text: "Name"; }
+                    name-field := TextField {
+                        placeholder: "e.g. Meditation";
+                        font-size: 15px;
+                        edited(t) => { name = t; }
+                        accepted => { min-field.focus-input(); }
+                        init => { self.focus-input(); }
+                    }
+                }
+
+                VerticalLayout {
+                    spacing: 8px;
+                    FieldLabel { text: "Does it need daily planning?"; }
+                    RadioCard {
+                        title: "Habit — just the X";
+                        description: "Do the minimum and mark the day. Nothing to plan. Good for meditation, reading or exercise.";
+                        checked: habit;
+                        pal: pal;
+                        picked => { habit = true; }
+                    }
+                    RadioCard {
+                        title: "Project — X plus daily tasks";
+                        description: "Plan tasks each evening, on your own or with Claude. Good for a game, the garden or a course.";
+                        checked: !habit;
+                        pal: pal;
+                        picked => { habit = false; }
+                    }
+                    Hint { text: "You can switch this later in Settings."; }
+                }
+
+                VerticalLayout {
+                    spacing: 6px;
+                    FieldLabel { text: "Minimum to earn an X"; }
+                    min-field := TextField {
+                        placeholder: "e.g. 10 minutes";
+                        font-size: 15px;
+                        edited(t) => { minimum = t; }
+                        accepted => { root.create(); }
+                    }
+                    Hint { text: "Keep it small enough that you can do it on a bad day."; }
+                }
+
+                VerticalLayout {
+                    spacing: 8px;
+                    FieldLabel { text: "Color"; }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        for p[i] in AppState.palettes: Rectangle {
+                            width: 44px;
+                            height: 44px;
+                            border-radius: 22px;
+                            border-width: 2px;
+                            border-color: i == color-index ? p.main : transparent;
+                            Dot { tint: p.main; size: 26px; }
+                            TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { color-index = i; }
+                            }
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    spacing: 8px;
+                    FieldLabel { text: "Start the card"; }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        for opt[i] in ["Today", "Tomorrow"]: Rectangle {
+                            height: 44px;
+                            horizontal-stretch: 1;
+                            border-radius: Theme.button-radius;
+                            background: Theme.surface;
+                            border-width: 1px;
+                            border-color: (i == 1) == start-tomorrow ? pal.main : Theme.border;
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                spacing: 10px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    Radio { checked: (i == 1) == start-tomorrow; tint: pal.main; size: 16px; }
+                                }
+                                Text {
+                                    text: opt;
+                                    font-size: 14px;
+                                    color: Theme.text;
+                                    vertical-alignment: center;
+                                    horizontal-stretch: 1;
+                                }
+                            }
+                            TouchArea {
+                                clicked => { start-tomorrow = i == 1; }
+                            }
+                        }
+                    }
+                }
+
+                // Live preview of the card.
+                Rectangle {
+                    border-radius: Theme.card-radius;
+                    background: Theme.surface;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    height: preview.preferred-height;
+                    preview := HorizontalLayout {
+                        padding: 16px;
+                        spacing: 16px;
+                        VerticalLayout {
+                            alignment: center;
+                            XGrid {
+                                width: 112px;
+                                gap: 3px;
+                                small: true;
+                                pal: pal;
+                                cells: [2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 4px;
+                            horizontal-stretch: 1;
+                            HorizontalLayout {
+                                spacing: 8px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    Dot { tint: pal.main; size: 8px; }
+                                }
+                                Text {
+                                    text: name == "" ? "Untitled" : name;
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    color: Theme.text;
+                                    overflow: elide;
+                                    horizontal-stretch: 1;
+                                }
+                            }
+                            Hint { text: habit ? "Habit · no evening planning" : "Project · planned each evening"; }
+                            Hint { text: minimum == "" ? "Set a minimum" : "Minimum: " + minimum; }
+                            Text {
+                                text: "49 days · " + (start-tomorrow ? "starts tomorrow" : "starts today");
+                                font-family: Theme.mono;
+                                font-size: 12px;
+                                color: Theme.text-muted;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            height: 1px;
+            background: Theme.header-line;
+        }
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 14px;
+            padding-bottom: 16px;
+            spacing: 10px;
+            Button {
+                text: "Cancel";
+                weight: 500;
+                horizontal-stretch: 1;
+                clicked => { AppState.page = Page.main; }
+            }
+            Button {
+                text: habit ? "Create habit" : "Create project";
+                fill: pal.main;
+                ink: pal.ink;
+                enabled: valid;
+                horizontal-stretch: 1;
+                clicked => { root.create(); }
+            }
+        }
+    }
+}

@@ -1,0 +1,104 @@
+// Visual tokens from design/DESIGN.md, plus the data structs the Rust side
+// fills in. Colors for each project come from Rust (src/palette.rs) as a Pal.
+
+import "../assets/fonts/IBMPlexSans-Regular.ttf";
+import "../assets/fonts/IBMPlexSans-Medium.ttf";
+import "../assets/fonts/IBMPlexSans-SemiBold.ttf";
+import "../assets/fonts/IBMPlexMono-Regular.ttf";
+import "../assets/fonts/IBMPlexMono-Medium.ttf";
+
+export global Theme {
+    out property <color> bg: #141619;
+    out property <color> surface: #1C1F23;
+    out property <color> surface-2: #22262B;
+    out property <color> surface-3: #2A2E34;
+    out property <color> border: #2A2E34;
+    out property <color> border-strong: #3A3F46;
+    out property <color> divider: #1F2227;
+    out property <color> divider-2: #262A2F;
+    out property <color> header-line: #22262B;
+    out property <color> menu-bg: #1F2328;
+    out property <color> menu-border: #353A41;
+    out property <color> menu-selected: #2A2E35;
+    out property <color> text: #E9EAEC;
+    out property <color> text-soft: #C9CDD2;
+    out property <color> text-muted: #A0A6AD;
+    out property <color> text-done: #80868E;
+    out property <color> miss-dot: #5A6068;
+    out property <color> cell-miss-border: #2E3238;
+    out property <color> cell-future: #17191C;
+    out property <color> cell-future-border: #24282D;
+
+    out property <string> sans: "IBM Plex Sans";
+    out property <string> mono: "IBM Plex Mono";
+
+    out property <length> card-radius: 10px;
+    out property <length> button-radius: 8px;
+    out property <length> target: 44px;
+}
+
+// One project color: main, tint (X cells), border, ink (text on main) and
+// soft (background of a selected option).
+export struct Pal {
+    main: color,
+    tint: color,
+    border: color,
+    ink: color,
+    soft: color,
+}
+
+// A row in the project switcher.
+export struct ProjectRow {
+    id: string,
+    name: string,
+    kind-label: string,
+    pal: Pal,
+    marked: bool,
+    selected: bool,
+}
+
+export struct TaskRow {
+    id: string,
+    text: string,
+    done: bool,
+}
+
+// Everything the X card shows for the selected project.
+export struct CardView {
+    has-project: bool,
+    id: string,
+    name: string,
+    kind-label: string,
+    is-habit: bool,
+    minimum: string,
+    pal: Pal,
+    // "Day 23 / 49", or "Starts tomorrow" before the card begins.
+    day-label: string,
+    streak: int,
+    marked: bool,
+    // False before the card starts and after it ends.
+    can-mark: bool,
+    // True once all days are behind.
+    complete: bool,
+}
+
+// Cell states are ints, matching CellState::as_int in src/card.rs:
+// 0 = X, 1 = miss, 2 = today (unmarked), 3 = future.
+
+export global Icons {
+    out property <image> pin: @image-url("../assets/icons/pin.svg");
+    out property <image> settings: @image-url("../assets/icons/settings.svg");
+    out property <image> minus: @image-url("../assets/icons/minus.svg");
+    out property <image> chevron-down: @image-url("../assets/icons/chevron-down.svg");
+    out property <image> chevron-up: @image-url("../assets/icons/chevron-up.svg");
+    out property <image> back: @image-url("../assets/icons/back.svg");
+    out property <image> close: @image-url("../assets/icons/close.svg");
+    out property <image> xmark: @image-url("../assets/icons/xmark.svg");
+    out property <image> xmark-bold: @image-url("../assets/icons/xmark-bold.svg");
+    out property <image> check: @image-url("../assets/icons/check.svg");
+    out property <image> plus: @image-url("../assets/icons/plus.svg");
+    out property <image> moon: @image-url("../assets/icons/moon.svg");
+    out property <image> message: @image-url("../assets/icons/message.svg");
+    out property <image> power: @image-url("../assets/icons/power.svg");
+    out property <image> alert: @image-url("../assets/icons/alert.svg");
+}
