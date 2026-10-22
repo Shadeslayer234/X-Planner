@@ -1,6 +1,6 @@
 [package]
 name = "xplanner"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A small Windows desktop app built around the X effect: 49-day cards, daily tasks and evening planning."
 license = "MIT OR Apache-2.0"
